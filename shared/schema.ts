@@ -4,7 +4,7 @@ import { z } from "zod";
 
 export const VENDOR_OPTIONS = [
   "RUBBER METSO",
-  "SCREEN DEVELOPEMENT METSO",
+  "SCREEN DEVELOPMENT METSO",
   "SCREEN REGULAR METSO",
   "SOURCING METSO",
   "LT METSO",
@@ -17,6 +17,7 @@ export const items = pgTable("items", {
   materialNumber: text("material_number").notNull().unique(),
   vendorName: text("vendor_name").notNull(),
   drawingNumber: text("drawing_number").notNull(),
+  revisionNumber: text("revision_number").notNull().default("1.0"),
   itemName: text("item_name").notNull(),
   description: text("description").notNull(),
   specialRemarks: text("special_remarks"),
@@ -28,7 +29,6 @@ export const items = pgTable("items", {
 export const purchaseOrders = pgTable("purchase_orders", {
   id: serial("id").primaryKey(),
   poNumber: text("po_number").notNull(),
-  department: text("department").notNull(),
   vendorName: text("vendor_name").notNull(),
   orderDate: timestamp("order_date").notNull(),
   deliveryDate: timestamp("delivery_date"),
@@ -51,6 +51,7 @@ export const insertItemSchema = createInsertSchema(items).omit({
   materialNumber: z.string().min(1, "Material Number is required"),
   vendorName: z.enum(VENDOR_OPTIONS),
   drawingNumber: z.string().min(1, "Drawing Number is required"),
+  revisionNumber: z.string().min(1, "Revision Number is required"),
   itemName: z.string().min(1, "Item Name is required"),
   description: z.string().min(1, "Description is required"),
   price: z.coerce.number().min(0, "Price must be positive"),
@@ -62,7 +63,6 @@ export const insertPurchaseOrderSchema = createInsertSchema(purchaseOrders).omit
   createdAt: true
 }).extend({
   poNumber: z.string().min(1, "PO Number is required"),
-  department: z.string().min(1, "Department is required"),
   vendorName: z.enum(VENDOR_OPTIONS),
   orderDate: z.coerce.date(),
   deliveryDate: z.coerce.date().optional(),

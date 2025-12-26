@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Package } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import { z } from "zod";
 
@@ -24,6 +24,7 @@ export default function ItemsPage() {
       materialNumber: "",
       vendorName: "RUBBER METSO",
       drawingNumber: "",
+      revisionNumber: "1.0",
       itemName: "",
       description: "",
       specialRemarks: "",
@@ -41,26 +42,16 @@ export default function ItemsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10 bg-opacity-80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <Package className="text-white w-6 h-6" />
-            </div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight font-display">Material Items</h1>
-          </div>
-        </div>
-      </div>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="h-full bg-slate-50 overflow-y-auto pb-20">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           
           {/* Left Column: Form */}
           <div className="lg:col-span-2">
             <div className="mb-4">
-              <h2 className="text-lg font-bold text-slate-900 font-display">Add New Item</h2>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight font-display">Material Items</h1>
+              <p className="text-sm text-slate-600 mt-1">Add and manage your material items</p>
             </div>
 
             <motion.div 
@@ -82,6 +73,7 @@ export default function ItemsPage() {
                               placeholder="MAT-001" 
                               className="rounded-lg h-10 text-sm border-slate-200" 
                               {...field} 
+                              data-testid="input-material-number"
                             />
                           </FormControl>
                           <FormMessage className="text-xs" />
@@ -97,7 +89,7 @@ export default function ItemsPage() {
                           <FormLabel className="text-sm text-slate-700 font-medium">Vendor Name</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger className="rounded-lg h-10 text-sm">
+                              <SelectTrigger className="rounded-lg h-10 text-sm" data-testid="select-vendor">
                                 <SelectValue />
                               </SelectTrigger>
                             </FormControl>
@@ -122,7 +114,27 @@ export default function ItemsPage() {
                             <Input 
                               placeholder="DWG-001" 
                               className="rounded-lg h-10 text-sm border-slate-200" 
-                              {...field} 
+                              {...field}
+                              data-testid="input-drawing-number"
+                            />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="revisionNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm text-slate-700 font-medium">Revision Number</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="1.0" 
+                              className="rounded-lg h-10 text-sm border-slate-200" 
+                              {...field}
+                              data-testid="input-revision-number"
                             />
                           </FormControl>
                           <FormMessage className="text-xs" />
@@ -140,7 +152,30 @@ export default function ItemsPage() {
                             <Input 
                               placeholder="Assembly" 
                               className="rounded-lg h-10 text-sm border-slate-200" 
+                              {...field}
+                              data-testid="input-item-name"
+                            />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="price"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm text-slate-700 font-medium">Price ($)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="0.00" 
+                              step="0.01"
+                              className="rounded-lg h-10 text-sm font-medium"
                               {...field} 
+                              onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                              data-testid="input-price"
                             />
                           </FormControl>
                           <FormMessage className="text-xs" />
@@ -159,7 +194,8 @@ export default function ItemsPage() {
                           <Textarea 
                             placeholder="Item details and specifications..." 
                             className="rounded-lg min-h-[80px] resize-none text-sm" 
-                            {...field} 
+                            {...field}
+                            data-testid="textarea-description"
                           />
                         </FormControl>
                         <FormMessage className="text-xs" />
@@ -179,6 +215,7 @@ export default function ItemsPage() {
                             className="rounded-lg min-h-[70px] resize-none text-sm" 
                             {...field} 
                             value={field.value || ""}
+                            data-testid="textarea-remarks"
                           />
                         </FormControl>
                         <FormMessage className="text-xs" />
@@ -186,50 +223,28 @@ export default function ItemsPage() {
                     )}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="price"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm text-slate-700 font-medium">Price ($)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="0.00" 
-                              step="0.01"
-                              className="rounded-lg h-10 text-sm font-medium"
-                              {...field} 
-                              onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                            />
-                          </FormControl>
-                          <FormMessage className="text-xs" />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="weight"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm text-slate-700 font-medium">Weight (kg)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="0.00" 
-                              step="0.01"
-                              className="rounded-lg h-10 text-sm"
-                              {...field} 
-                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                              value={field.value || ""}
-                            />
-                          </FormControl>
-                          <FormMessage className="text-xs" />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="weight"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-slate-700 font-medium">Weight (kg)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="0.00" 
+                            step="0.01"
+                            className="rounded-lg h-10 text-sm"
+                            {...field} 
+                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                            value={field.value || ""}
+                            data-testid="input-weight"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
 
                   <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
                     <Button 
@@ -238,6 +253,7 @@ export default function ItemsPage() {
                       size="sm"
                       className="rounded-lg text-xs"
                       onClick={() => form.reset()}
+                      data-testid="button-clear"
                     >
                       Clear
                     </Button>
@@ -246,6 +262,7 @@ export default function ItemsPage() {
                       size="sm"
                       className="rounded-lg text-xs bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg shadow-primary/20 px-4"
                       disabled={mutation.isPending}
+                      data-testid="button-add-item"
                     >
                       {mutation.isPending ? (
                         <>
@@ -292,6 +309,7 @@ export default function ItemsPage() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       className="px-5 py-3 hover:bg-slate-50 transition-colors"
+                      data-testid={`card-item-${item.id}`}
                     >
                       <p className="font-mono text-xs font-bold text-slate-900 mb-1">
                         {item.materialNumber}
@@ -299,9 +317,10 @@ export default function ItemsPage() {
                       <p className="text-xs text-slate-600 font-medium mb-1">
                         {item.itemName}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        ${item.price}
-                      </p>
+                      <div className="text-xs text-slate-500 space-y-0.5">
+                        <p>Rev: {item.revisionNumber}</p>
+                        <p>${item.price}</p>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
@@ -309,7 +328,7 @@ export default function ItemsPage() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
