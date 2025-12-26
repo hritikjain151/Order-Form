@@ -1,6 +1,6 @@
 import { usePurchaseOrders } from "@/hooks/use-purchase-orders";
 import { format } from "date-fns";
-import { Loader2, Package, Calendar, DollarSign, User } from "lucide-react";
+import { Loader2, Package, Calendar, DollarSign, Package2, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function PurchaseOrderList() {
@@ -45,52 +45,50 @@ export function PurchaseOrderList() {
           transition={{ delay: index * 0.05 }}
           className="group bg-white rounded-2xl p-6 border border-slate-100 hover:border-primary/20 shadow-sm hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
         >
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1">
+          <div className="space-y-3">
+            {/* Header Row */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <span className="font-mono text-sm font-semibold bg-slate-100 text-slate-600 px-2 py-1 rounded-md border border-slate-200">
-                  #{order.poNumber}
+                  {order.poNumber}
                 </span>
-                <h3 className="text-lg font-bold text-slate-900 font-display">{order.vendorName}</h3>
+                <h3 className="font-bold text-slate-900">{order.vendorName}</h3>
               </div>
-              <p className="text-slate-500 text-sm line-clamp-1">{order.description}</p>
+              <span className="text-sm font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100">
+                ${order.price.toLocaleString()} x {order.quantity}
+              </span>
             </div>
 
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="flex items-center text-sm text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg">
-                <Calendar className="w-4 h-4 mr-2 text-slate-400" />
-                {format(new Date(order.orderDate), "MMM dd, yyyy")}
-              </div>
-              
-              <div className="flex items-center text-sm text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg">
-                <User className="w-4 h-4 mr-2 text-slate-400" />
-                {order.requesterName}
-              </div>
+            {/* Part Details */}
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+              <p className="text-sm text-slate-600"><span className="font-semibold text-slate-900">Part:</span> {order.partName}</p>
+              <p className="text-xs text-slate-500 mt-1">Mat: {order.materialNumber} | Dwg: {order.drawingNumber}</p>
+            </div>
 
-              <div className="flex items-center text-sm font-bold text-slate-900 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-100">
-                <DollarSign className="w-4 h-4 mr-1" />
-                {order.totalAmount.toLocaleString()}
+            {/* Description & Remarks */}
+            <div className="text-sm text-slate-600 line-clamp-2">{order.description}</div>
+            {order.importantRemarks && (
+              <div className="text-xs bg-amber-50 border border-amber-100 text-amber-700 p-2 rounded-lg">
+                <span className="font-semibold">⚠ {order.importantRemarks}</span>
               </div>
+            )}
 
-              <Badge status={order.status} />
+            {/* Dates */}
+            <div className="flex flex-wrap gap-2 text-xs">
+              <div className="flex items-center text-slate-600 bg-slate-50 px-2 py-1 rounded">
+                <Calendar className="w-3 h-3 mr-1 text-slate-400" />
+                {format(new Date(order.orderDate), "MMM dd")}
+              </div>
+              {order.deliveryDate && (
+                <div className="flex items-center text-slate-600 bg-slate-50 px-2 py-1 rounded">
+                  <Package2 className="w-3 h-3 mr-1 text-slate-400" />
+                  {format(new Date(order.deliveryDate), "MMM dd")}
+                </div>
+              )}
             </div>
           </div>
         </motion.div>
       ))}
     </div>
-  );
-}
-
-function Badge({ status }: { status: string }) {
-  const styles = {
-    Pending: "bg-amber-100 text-amber-700 border-amber-200",
-    Approved: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    Rejected: "bg-rose-100 text-rose-700 border-rose-200",
-  }[status] || "bg-slate-100 text-slate-700 border-slate-200";
-
-  return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${styles} capitalize`}>
-      {status}
-    </span>
   );
 }

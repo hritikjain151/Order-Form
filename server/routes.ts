@@ -41,21 +41,37 @@ export async function registerRoutes(
   return httpServer;
 }
 
-// Seed function to be called from index.ts or handled via a separate script
 export async function seedDatabase() {
   const existing = await storage.getPurchaseOrders();
   if (existing.length === 0) {
     await storage.createPurchaseOrder({
-      poNumber: "123456789012",
-      vendorName: "Acme Corp",
+      poNumber: "PO-001-2025",
+      vendorName: "RUBBER METSO",
       orderDate: new Date(),
-      totalAmount: 5000,
-      description: "Office Supplies",
-      department: "Admin",
-      requesterName: "John Doe",
-      status: "Pending",
-      deliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      remarks: "Urgent delivery requested"
+      materialNumber: "MAT-12345",
+      drawingNumber: "DWG-67890",
+      partName: "Rubber Seal Assembly",
+      description: "High-quality rubber seals for industrial equipment",
+      importantRemarks: "Handle with care - keep in dry storage",
+      quantity: 100,
+      price: 2500,
+      deliveryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      remarks: "Urgent delivery requested for production line setup"
+    });
+
+    await storage.createPurchaseOrder({
+      poNumber: "PO-002-2025",
+      vendorName: "SCREEN DEVELOPEMENT METSO",
+      orderDate: new Date(),
+      materialNumber: "MAT-54321",
+      drawingNumber: "DWG-11111",
+      partName: "Screen Panel Assembly",
+      description: "Development model screen panels with specifications",
+      importantRemarks: "Prototype - do not use for production",
+      quantity: 50,
+      price: 5000,
+      deliveryDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
+      remarks: "For testing and development purposes only"
     });
   }
 }

@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertPurchaseOrderSchema, type InsertPurchaseOrder } from "@shared/schema";
+import { insertPurchaseOrderSchema, type InsertPurchaseOrder, VENDOR_OPTIONS } from "@shared/schema";
 import { useCreatePurchaseOrder } from "@/hooks/use-purchase-orders";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -17,14 +17,15 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
     resolver: zodResolver(insertPurchaseOrderSchema),
     defaultValues: {
       poNumber: "",
-      vendorName: "",
-      totalAmount: 0,
+      vendorName: "RUBBER METSO",
+      materialNumber: "",
+      drawingNumber: "",
+      partName: "",
       description: "",
-      department: "",
-      requesterName: "",
-      status: "Pending",
+      importantRemarks: "",
+      quantity: 1,
+      price: 0,
       remarks: "",
-      // Dates default to today via schema default but we'll set explicitly for controlled inputs
       orderDate: new Date(),
     },
   });
@@ -46,14 +47,13 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
     >
       <div className="mb-8 border-b border-slate-100 pb-6">
         <h2 className="text-2xl font-bold text-slate-900 font-display">New Purchase Order</h2>
-        <p className="text-slate-500 mt-1">Fill in the details to generate a new PO request.</p>
+        <p className="text-slate-500 mt-1">Fill in all details for the purchase order request.</p>
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Row 1: PO Number & Vendor Name */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* Field 1: PO Number */}
             <FormField
               control={form.control}
               name="poNumber"
@@ -61,39 +61,43 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
                 <FormItem>
                   <FormLabel className="text-slate-700 font-medium">PO Number</FormLabel>
                   <FormControl>
-                    <div className="relative">
-                      <Input 
-                        placeholder="123456789012" 
-                        maxLength={12}
-                        className="font-mono text-lg tracking-wide border-slate-200 focus:border-primary focus:ring-primary/10 rounded-xl h-12" 
-                        {...field} 
-                      />
-                      <div className="absolute right-3 top-3 text-xs text-slate-400 font-mono">
-                        {field.value?.length || 0}/12
-                      </div>
-                    </div>
+                    <Input 
+                      placeholder="e.g., PO-001-2025" 
+                      className="rounded-xl h-12 border-slate-200 focus:border-primary focus:ring-primary/10" 
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Field 2: Vendor Name */}
             <FormField
               control={form.control}
               name="vendorName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-slate-700 font-medium">Vendor Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Acme Corp Inc." className="rounded-xl h-12" {...field} />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="rounded-xl h-12">
+                        <SelectValue placeholder="Select vendor" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {VENDOR_OPTIONS.map((vendor) => (
+                        <SelectItem key={vendor} value={vendor}>{vendor}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+          </div>
 
-            {/* Field 3: Order Date */}
+          {/* Row 2: Order Date & Material Number */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
               name="orderDate"
@@ -113,105 +117,17 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
               )}
             />
 
-            {/* Field 4: Total Amount */}
             <FormField
               control={form.control}
-              name="totalAmount"
+              name="materialNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-700 font-medium">Total Amount ($)</FormLabel>
+                  <FormLabel className="text-slate-700 font-medium">Material Number</FormLabel>
                   <FormControl>
                     <Input 
-                      type="number" 
-                      placeholder="0.00" 
-                      className="rounded-xl h-12 text-lg font-medium"
+                      placeholder="e.g., MAT-12345" 
+                      className="rounded-xl h-12" 
                       {...field} 
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Field 6: Department */}
-            <FormField
-              control={form.control}
-              name="department"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-slate-700 font-medium">Department</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="rounded-xl h-12">
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="IT">IT Infrastructure</SelectItem>
-                      <SelectItem value="HR">Human Resources</SelectItem>
-                      <SelectItem value="Finance">Finance & Accounting</SelectItem>
-                      <SelectItem value="Operations">Operations</SelectItem>
-                      <SelectItem value="Sales">Sales & Marketing</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Field 7: Requester Name */}
-            <FormField
-              control={form.control}
-              name="requesterName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-slate-700 font-medium">Requester Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John Doe" className="rounded-xl h-12" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Field 8: Status */}
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-slate-700 font-medium">Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value || "Pending"}>
-                    <FormControl>
-                      <SelectTrigger className="rounded-xl h-12">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Pending">Pending Review</SelectItem>
-                      <SelectItem value="Approved">Approved</SelectItem>
-                      <SelectItem value="Rejected">Rejected</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Field 9: Delivery Date */}
-            <FormField
-              control={form.control}
-              name="deliveryDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-slate-700 font-medium">Delivery Date (Est.)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="date" 
-                      className="rounded-xl h-12 block w-full" 
-                      value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
-                      onChange={(e) => field.onChange(new Date(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -220,7 +136,46 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
             />
           </div>
 
-          {/* Field 5: Description - Full Width */}
+          {/* Row 3: Drawing Number & Part Name */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="drawingNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-slate-700 font-medium">Drawing Number</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="e.g., DWG-67890" 
+                      className="rounded-xl h-12" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="partName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-slate-700 font-medium">Part Name</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="e.g., Rubber Seal Assembly" 
+                      className="rounded-xl h-12" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Full Width: Description */}
           <FormField
             control={form.control}
             name="description"
@@ -229,7 +184,7 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
                 <FormLabel className="text-slate-700 font-medium">Description</FormLabel>
                 <FormControl>
                   <Textarea 
-                    placeholder="Enter detailed description of items or services..." 
+                    placeholder="Detailed description of the material..." 
                     className="rounded-xl min-h-[100px] resize-none" 
                     {...field} 
                   />
@@ -239,7 +194,90 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
             )}
           />
 
-          {/* Field 10: Remarks - Full Width */}
+          {/* Full Width: Important Remarks */}
+          <FormField
+            control={form.control}
+            name="importantRemarks"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-slate-700 font-medium">Important Remarks</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    placeholder="Any special handling or important notes..." 
+                    className="rounded-xl min-h-[80px] resize-none" 
+                    {...field} 
+                    value={field.value || ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Row 4: Quantity & Price */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="quantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-slate-700 font-medium">Quantity</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="0" 
+                      className="rounded-xl h-12"
+                      {...field} 
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="price"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-slate-700 font-medium">Price ($)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="0.00" 
+                      className="rounded-xl h-12 text-lg font-medium"
+                      {...field} 
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Row 5: Delivery Date */}
+          <FormField
+            control={form.control}
+            name="deliveryDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-slate-700 font-medium">Delivery Date (Est.)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="date" 
+                    className="rounded-xl h-12 block w-full" 
+                    value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
+                    onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : undefined)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Full Width: Remarks */}
           <FormField
             control={form.control}
             name="remarks"
@@ -248,8 +286,8 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
                 <FormLabel className="text-slate-700 font-medium">Remarks</FormLabel>
                 <FormControl>
                   <Textarea 
-                    placeholder="Any additional notes..." 
-                    className="rounded-xl min-h-[80px] resize-none" 
+                    placeholder="Any additional notes or special instructions..." 
+                    className="rounded-xl min-h-[120px] resize-none" 
                     {...field} 
                     value={field.value || ""}
                   />
