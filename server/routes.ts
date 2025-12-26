@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
-import { api } from "@shared/routes";
+import { api, createPurchaseOrderWithItemsSchema } from "@shared/routes";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -15,8 +15,9 @@ export async function registerRoutes(
 
   app.post(api.purchaseOrders.create.path, async (req, res) => {
     try {
-      const input = api.purchaseOrders.create.input.parse(req.body);
-      const po = await storage.createPurchaseOrder(input);
+      const input = createPurchaseOrderWithItemsSchema.parse(req.body);
+      const { items, ...poData } = input;
+      const po = await storage.createPurchaseOrder(poData, items);
       res.status(201).json(po);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -44,34 +45,55 @@ export async function registerRoutes(
 export async function seedDatabase() {
   const existing = await storage.getPurchaseOrders();
   if (existing.length === 0) {
-    await storage.createPurchaseOrder({
-      poNumber: "PO-001-2025",
-      vendorName: "RUBBER METSO",
-      orderDate: new Date(),
-      materialNumber: "MAT-12345",
-      drawingNumber: "DWG-67890",
-      partName: "Rubber Seal Assembly",
-      description: "High-quality rubber seals for industrial equipment",
-      importantRemarks: "Handle with care - keep in dry storage",
-      quantity: 100,
-      price: 2500,
-      deliveryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-      remarks: "Urgent delivery requested for production line setup"
-    });
+    await storage.createPurchaseOrder(
+      {
+        poNumber: "PO-001-2025",
+        vendorName: "RUBBER METSO",
+        orderDate: new Date(),
+        deliveryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        remarks: "Urgent delivery requested for production line setup"
+      },
+      [
+        {
+          materialNumber: "MAT-12345",
+          drawingNumber: "DWG-67890",
+          partName: "Rubber Seal Assembly",
+          description: "High-quality rubber seals for industrial equipment",
+          importantRemarks: "Handle with care - keep in dry storage",
+          quantity: 100,
+          price: "25.00"
+        },
+        {
+          materialNumber: "MAT-12346",
+          drawingNumber: "DWG-67891",
+          partName: "Rubber Gasket",
+          description: "Premium gaskets for sealing applications",
+          importantRemarks: "Store in cool, dry place",
+          quantity: 50,
+          price: "15.50"
+        }
+      ]
+    );
 
-    await storage.createPurchaseOrder({
-      poNumber: "PO-002-2025",
-      vendorName: "SCREEN DEVELOPEMENT METSO",
-      orderDate: new Date(),
-      materialNumber: "MAT-54321",
-      drawingNumber: "DWG-11111",
-      partName: "Screen Panel Assembly",
-      description: "Development model screen panels with specifications",
-      importantRemarks: "Prototype - do not use for production",
-      quantity: 50,
-      price: 5000,
-      deliveryDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
-      remarks: "For testing and development purposes only"
-    });
+    await storage.createPurchaseOrder(
+      {
+        poNumber: "PO-002-2025",
+        vendorName: "SCREEN DEVELOPEMENT METSO",
+        orderDate: new Date(),
+        deliveryDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
+        remarks: "For testing and development purposes only"
+      },
+      [
+        {
+          materialNumber: "MAT-54321",
+          drawingNumber: "DWG-11111",
+          partName: "Screen Panel Assembly",
+          description: "Development model screen panels with specifications",
+          importantRemarks: "Prototype - do not use for production",
+          quantity: 50,
+          price: "100.00"
+        }
+      ]
+    );
   }
 }

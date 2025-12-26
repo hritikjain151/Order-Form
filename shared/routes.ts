@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertPurchaseOrderSchema, purchaseOrders } from './schema';
+import { insertPurchaseOrderSchema, insertPurchaseOrderItemSchema, purchaseOrders, purchaseOrderItems } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -14,21 +14,26 @@ export const errorSchemas = {
   }),
 };
 
+// Create PO with items in one request
+export const createPurchaseOrderWithItemsSchema = insertPurchaseOrderSchema.extend({
+  items: z.array(insertPurchaseOrderItemSchema).min(1, "At least one item is required"),
+});
+
 export const api = {
   purchaseOrders: {
     list: {
       method: 'GET' as const,
       path: '/api/purchase-orders',
       responses: {
-        200: z.array(z.custom<typeof purchaseOrders.$inferSelect>()),
+        200: z.array(z.custom<any>()),
       },
     },
     create: {
       method: 'POST' as const,
       path: '/api/purchase-orders',
-      input: insertPurchaseOrderSchema,
+      input: createPurchaseOrderWithItemsSchema,
       responses: {
-        201: z.custom<typeof purchaseOrders.$inferSelect>(),
+        201: z.custom<any>(),
         400: errorSchemas.validation,
       },
     },
@@ -36,7 +41,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/purchase-orders/:id',
       responses: {
-        200: z.custom<typeof purchaseOrders.$inferSelect>(),
+        200: z.custom<any>(),
         404: errorSchemas.notFound,
       },
     },
