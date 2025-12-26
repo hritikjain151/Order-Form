@@ -15,6 +15,7 @@ export const VENDOR_OPTIONS = [
 export const purchaseOrders = pgTable("purchase_orders", {
   id: serial("id").primaryKey(),
   poNumber: text("po_number").notNull(),
+  department: text("department").notNull(),
   vendorName: text("vendor_name").notNull(),
   orderDate: timestamp("order_date").notNull(),
   deliveryDate: timestamp("delivery_date"),
@@ -39,6 +40,7 @@ export const insertPurchaseOrderSchema = createInsertSchema(purchaseOrders).omit
   createdAt: true
 }).extend({
   poNumber: z.string().min(1, "PO Number is required"),
+  department: z.string().min(1, "Department is required"),
   vendorName: z.enum(VENDOR_OPTIONS),
   orderDate: z.coerce.date(),
   deliveryDate: z.coerce.date().optional(),

@@ -48,6 +48,7 @@ export async function seedDatabase() {
     await storage.createPurchaseOrder(
       {
         poNumber: "PO-001-2025",
+        department: "Operations",
         vendorName: "RUBBER METSO",
         orderDate: new Date(),
         deliveryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
@@ -78,6 +79,7 @@ export async function seedDatabase() {
     await storage.createPurchaseOrder(
       {
         poNumber: "PO-002-2025",
+        department: "Sales",
         vendorName: "SCREEN DEVELOPEMENT METSO",
         orderDate: new Date(),
         deliveryDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),

@@ -27,22 +27,21 @@ export default function Home() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           
           {/* Left Column: Form */}
-          <div className="lg:col-span-7">
-             <div className="mb-6 flex items-center justify-between">
-               <h2 className="text-xl font-bold text-slate-900 font-display">Create Request</h2>
+          <div className="lg:col-span-2">
+             <div className="mb-4 flex items-center justify-between">
+               <h2 className="text-lg font-bold text-slate-900 font-display">Create Purchase Order</h2>
              </div>
              <PurchaseOrderForm />
           </div>
 
           {/* Right Column: List */}
-          <div className="lg:col-span-5">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-900 font-display">Recent Orders</h2>
-              <span className="text-sm text-slate-500 font-medium cursor-pointer hover:text-primary transition-colors">View All</span>
+          <div className="lg:col-span-1">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900 font-display">All POs</h2>
             </div>
             
             <motion.div 
