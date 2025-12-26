@@ -1,7 +1,61 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
-import { type InsertPurchaseOrder } from "@shared/schema";
+import { type InsertPurchaseOrder, type InsertItem } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+
+export function useItems() {
+  return useQuery({
+    queryKey: [api.items.list.path],
+    queryFn: async () => {
+      const res = await fetch(api.items.list.path);
+      if (!res.ok) throw new Error("Failed to fetch items");
+      return api.items.list.responses[200].parse(await res.json());
+    },
+  });
+}
+
+export function useCreateItem() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (data: InsertItem) => {
+      const res = await fetch(api.items.create.path, {
+        method: api.items.create.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        if (res.status === 409) {
+          const error = await res.json();
+          throw new Error(error.message || "Material Number already exists");
+        }
+        if (res.status === 400) {
+          const error = await res.json();
+          throw new Error(error.message || "Validation failed");
+        }
+        throw new Error("Failed to create item");
+      }
+      
+      return api.items.create.responses[201].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.items.list.path] });
+      toast({
+        title: "Success",
+        description: "Item created successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
 
 export function usePurchaseOrders() {
   return useQuery({
@@ -33,7 +87,7 @@ export function useCreatePurchaseOrder() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (data: InsertPurchaseOrder) => {
+    mutationFn: async (data: any) => {
       const res = await fetch(api.purchaseOrders.create.path, {
         method: api.purchaseOrders.create.method,
         headers: { "Content-Type": "application/json" },

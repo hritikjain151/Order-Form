@@ -1,7 +1,7 @@
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertPurchaseOrderSchema, insertPurchaseOrderItemSchema, type InsertPurchaseOrderItem, VENDOR_OPTIONS } from "@shared/schema";
-import { useCreatePurchaseOrder } from "@/hooks/use-purchase-orders";
+import { insertPurchaseOrderSchema, VENDOR_OPTIONS, type InsertPurchaseOrderItem, type Item } from "@shared/schema";
+import { useCreatePurchaseOrder, useItems } from "@/hooks/use-purchase-orders";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,21 @@ import { Loader2, Plus, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { z } from "zod";
 
+const insertPOItemSchema = z.object({
+  itemId: z.coerce.number().min(1, "Item is required"),
+  quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
+  priceOverride: z.coerce.number().optional(),
+});
+
 const formSchema = insertPurchaseOrderSchema.extend({
-  items: z.array(insertPurchaseOrderItemSchema).min(1, "At least one item is required"),
+  items: z.array(insertPOItemSchema).min(1, "At least one item is required"),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
   const mutation = useCreatePurchaseOrder();
+  const { data: items = [], isLoading: isLoadingItems } = useItems();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -31,13 +38,9 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
       remarks: "",
       items: [
         {
-          materialNumber: "",
-          drawingNumber: "",
-          partName: "",
-          description: "",
-          importantRemarks: "",
+          itemId: 0,
           quantity: 1,
-          price: 0,
+          priceOverride: undefined,
         }
       ],
     },
@@ -55,6 +58,10 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
         onSuccess?.();
       },
     });
+  };
+
+  const getSelectedItemDetails = (itemId: number): Item | undefined => {
+    return items.find(item => item.id === itemId);
   };
 
   return (
@@ -199,15 +206,12 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
                 variant="outline"
                 size="sm"
                 onClick={() => append({
-                  materialNumber: "",
-                  drawingNumber: "",
-                  partName: "",
-                  description: "",
-                  importantRemarks: "",
+                  itemId: 0,
                   quantity: 1,
-                  price: 0,
+                  priceOverride: undefined,
                 })}
                 className="rounded-lg h-8 text-xs"
+                disabled={isLoadingItems}
               >
                 <Plus className="w-3 h-3 mr-1" />
                 Add Item
@@ -215,166 +219,116 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
             </div>
 
             <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-              {fields.map((field, index) => (
-                <motion.div
-                  key={field.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-slate-50 border border-slate-200 rounded-lg p-3 relative hover:border-primary/30 transition-colors"
-                >
-                  <button
-                    type="button"
-                    onClick={() => remove(index)}
-                    className="absolute top-2 right-2 p-1 hover:bg-red-50 rounded text-red-600 transition-colors"
+              {fields.map((field, index) => {
+                const selectedItem = getSelectedItemDetails(form.watch(`items.${index}.itemId`));
+                
+                return (
+                  <motion.div
+                    key={field.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-slate-50 border border-slate-200 rounded-lg p-3 relative hover:border-primary/30 transition-colors"
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => remove(index)}
+                      className="absolute top-2 right-2 p-1 hover:bg-red-50 rounded text-red-600 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
 
-                  <p className="text-xs font-semibold text-slate-500 mb-2">Item {index + 1}</p>
+                    <p className="text-xs font-semibold text-slate-500 mb-2">Item {index + 1}</p>
 
-                  <div className="grid grid-cols-2 gap-2 mb-2">
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.materialNumber`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs text-slate-600">Material #</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="MAT-001" 
-                              className="rounded-md h-8 text-xs" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage className="text-xs" />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="mb-2">
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.itemId`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs text-slate-600">Material Number</FormLabel>
+                            <Select onValueChange={(val) => field.onChange(parseInt(val))}>
+                              <FormControl>
+                                <SelectTrigger className="rounded-md h-8 text-xs">
+                                  <SelectValue placeholder={isLoadingItems ? "Loading..." : "Select item"} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="max-h-48">
+                                {items.map((item: Item) => (
+                                  <SelectItem key={item.id} value={item.id.toString()} className="text-xs">
+                                    {item.materialNumber} - {item.itemName}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.drawingNumber`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs text-slate-600">Drawing #</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="DWG-001" 
-                              className="rounded-md h-8 text-xs" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage className="text-xs" />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                    {selectedItem && (
+                      <div className="bg-white border border-slate-200 rounded-md p-2 mb-2 text-xs">
+                        <p className="font-semibold text-slate-900">{selectedItem.itemName}</p>
+                        <p className="text-slate-600 text-xs line-clamp-2">{selectedItem.description}</p>
+                        <div className="grid grid-cols-2 gap-2 mt-1 text-slate-500">
+                          <p>DWG: {selectedItem.drawingNumber}</p>
+                          <p>Price: ${selectedItem.price}</p>
+                          {selectedItem.weight && <p>Weight: {selectedItem.weight}kg</p>}
+                        </div>
+                        {selectedItem.specialRemarks && (
+                          <p className="text-amber-600 mt-1 bg-amber-50 px-1 rounded">
+                            {selectedItem.specialRemarks}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
-                  <div className="mb-2">
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.partName`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs text-slate-600">Part Name</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Assembly" 
-                              className="rounded-md h-8 text-xs" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage className="text-xs" />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.quantity`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs text-slate-600">Quantity</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="0" 
+                                className="rounded-md h-8 text-xs"
+                                {...field} 
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
 
-                  <div className="mb-2">
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.description`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs text-slate-600">Description</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Details..." 
-                              className="rounded-md h-8 text-xs" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage className="text-xs" />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="mb-2">
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.importantRemarks`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs text-slate-600">Important Remarks</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Notes..." 
-                              className="rounded-md h-8 text-xs" 
-                              {...field} 
-                              value={field.value || ""}
-                            />
-                          </FormControl>
-                          <FormMessage className="text-xs" />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.quantity`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs text-slate-600">Qty</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="0" 
-                              className="rounded-md h-8 text-xs"
-                              {...field} 
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                            />
-                          </FormControl>
-                          <FormMessage className="text-xs" />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.price`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs text-slate-600">Price ($)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="0.00" 
-                              step="0.01"
-                              className="rounded-md h-8 text-xs font-medium"
-                              {...field} 
-                              onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                            />
-                          </FormControl>
-                          <FormMessage className="text-xs" />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </motion.div>
-              ))}
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.priceOverride`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs text-slate-600">Price Override ($)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder={selectedItem ? selectedItem.price : "0.00"}
+                                step="0.01"
+                                className="rounded-md h-8 text-xs font-medium"
+                                {...field} 
+                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
 
             {form.formState.errors.items && (

@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { insertPurchaseOrderSchema, insertPurchaseOrderItemSchema, purchaseOrders, purchaseOrderItems } from './schema';
+import { insertItemSchema, insertPurchaseOrderSchema, insertPurchaseOrderItemSchema, createPurchaseOrderWithItemsSchema } from './schema';
+export { createPurchaseOrderWithItemsSchema } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -9,17 +10,34 @@ export const errorSchemas = {
   notFound: z.object({
     message: z.string(),
   }),
+  conflict: z.object({
+    message: z.string(),
+  }),
   internal: z.object({
     message: z.string(),
   }),
 };
 
-// Create PO with items in one request
-export const createPurchaseOrderWithItemsSchema = insertPurchaseOrderSchema.extend({
-  items: z.array(insertPurchaseOrderItemSchema).min(1, "At least one item is required"),
-});
-
 export const api = {
+  items: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/items',
+      responses: {
+        200: z.array(z.custom<any>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/items',
+      input: insertItemSchema,
+      responses: {
+        201: z.custom<any>(),
+        400: errorSchemas.validation,
+        409: errorSchemas.conflict,
+      },
+    },
+  },
   purchaseOrders: {
     list: {
       method: 'GET' as const,

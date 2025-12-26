@@ -1,6 +1,8 @@
 import { PurchaseOrderForm } from "@/components/PurchaseOrderForm";
 import { PurchaseOrderList } from "@/components/PurchaseOrderList";
 import { motion } from "framer-motion";
+import { Link } from "wouter";
+import { Package } from "lucide-react";
 
 export default function Home() {
   return (
@@ -15,6 +17,12 @@ export default function Home() {
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight font-display">ProcureFlow</h1>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/items">
+              <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors text-sm font-medium text-slate-700">
+                <Package className="w-4 h-4" />
+                Manage Items
+              </button>
+            </Link>
             <div className="hidden sm:block text-sm text-right">
               <p className="font-semibold text-slate-900">Welcome back</p>
               <p className="text-slate-500 text-xs">Admin Access</p>
