@@ -60,8 +60,8 @@ export function PurchaseOrderList() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-slate-600 font-medium bg-slate-100 px-2.5 py-1 rounded-full">
-                  {order.department}
+                <p className="text-xs text-slate-600 font-medium bg-slate-100 px-2.5 py-1 rounded-full whitespace-nowrap">
+                  {order.vendorName}
                 </p>
               </div>
             </div>
