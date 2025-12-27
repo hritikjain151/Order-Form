@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { z } from "zod";
+import { useEffect } from "react";
 
 const formSchema = insertItemSchema;
 type FormData = z.infer<typeof formSchema>;
@@ -32,6 +33,29 @@ export default function ItemsPage() {
       weight: undefined,
     },
   });
+
+  // Watch material number field for real-time duplicate check
+  const materialNumber = form.watch("materialNumber");
+
+  useEffect(() => {
+    if (materialNumber.trim()) {
+      const isDuplicate = allItems.some(
+        item => item.materialNumber.toLowerCase() === materialNumber.toLowerCase()
+      );
+      
+      if (isDuplicate) {
+        form.setError("materialNumber", {
+          type: "manual",
+          message: "This Material Number already exists in the database"
+        });
+      } else {
+        // Clear error if it was previously set
+        if (form.formState.errors.materialNumber?.message === "This Material Number already exists in the database") {
+          form.clearErrors("materialNumber");
+        }
+      }
+    }
+  }, [materialNumber, allItems, form]);
 
   const onSubmit = (data: FormData) => {
     mutation.mutate(data, {
@@ -65,20 +89,28 @@ export default function ItemsPage() {
                     <FormField
                       control={form.control}
                       name="materialNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm text-slate-700 font-medium">Material Number (Unique)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="MAT-001" 
-                              className="rounded-lg h-10 text-sm border-slate-200" 
-                              {...field} 
-                              data-testid="input-material-number"
-                            />
-                          </FormControl>
-                          <FormMessage className="text-xs" />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        const hasError = !!form.formState.errors.materialNumber;
+                        return (
+                          <FormItem>
+                            <FormLabel className="text-sm text-slate-700 font-medium">Material Number (Unique)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="MAT-001" 
+                                className={`rounded-lg h-10 text-sm border-slate-200 ${hasError ? 'border-destructive focus:border-destructive' : ''}`}
+                                {...field} 
+                                data-testid="input-material-number"
+                              />
+                            </FormControl>
+                            {hasError && (
+                              <div className="flex items-center gap-1.5 mt-1 text-destructive">
+                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                <FormMessage className="text-xs m-0" />
+                              </div>
+                            )}
+                          </FormItem>
+                        );
+                      }}
                     />
 
                     <FormField
