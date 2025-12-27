@@ -48,11 +48,7 @@ export async function registerRoutes(
       // Fetch full item data for each selected item
       const itemsWithFullData = await Promise.all(
         itemsData.map(async (itemInput) => {
-          const item = await storage.getItemByMaterialNumber(
-            // We need to get the item - but itemInput only has itemId
-            // Actually, in the form we'll pass itemId directly
-            String(itemInput.itemId)
-          );
+          const item = await storage.getItemById(itemInput.itemId);
           if (!item) throw new Error('Item not found');
           return { ...itemInput, item };
         })

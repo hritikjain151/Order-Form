@@ -16,6 +16,7 @@ export interface IStorage {
   // Items
   getItems(): Promise<Item[]>;
   getItemByMaterialNumber(materialNumber: string): Promise<Item | undefined>;
+  getItemById(id: number): Promise<Item | undefined>;
   createItem(item: InsertItem): Promise<Item>;
 
   // Purchase Orders
@@ -32,6 +33,11 @@ export class DatabaseStorage implements IStorage {
 
   async getItemByMaterialNumber(materialNumber: string): Promise<Item | undefined> {
     const [result] = await db.select().from(items).where(eq(items.materialNumber, materialNumber));
+    return result;
+  }
+
+  async getItemById(id: number): Promise<Item | undefined> {
+    const [result] = await db.select().from(items).where(eq(items.id, id));
     return result;
   }
 
