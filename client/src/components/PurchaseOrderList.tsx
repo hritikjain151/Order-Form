@@ -1,5 +1,5 @@
 import { usePurchaseOrders } from "@/hooks/use-purchase-orders";
-import { Loader2, Package } from "lucide-react";
+import { Loader2, Package, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function PurchaseOrderList() {
@@ -27,7 +27,7 @@ export function PurchaseOrderList() {
         <Package className="h-8 w-8 text-slate-300 mx-auto mb-2" />
         <h3 className="text-sm font-semibold text-slate-900">No Orders Yet</h3>
         <p className="text-xs text-slate-500 mt-1">
-          Create your first purchase order using the form.
+          Create your first purchase order using the form above.
         </p>
       </div>
     );
@@ -38,31 +38,54 @@ export function PurchaseOrderList() {
     a.poNumber.localeCompare(b.poNumber)
   );
 
+  const formatDate = (date: Date | string) => {
+    if (!date) return "-";
+    const d = new Date(date);
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-lg shadow-slate-200/30">
       <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-5 py-3 border-b border-slate-200">
-        <h3 className="text-sm font-bold text-slate-900">Purchase Orders</h3>
+        <h3 className="text-sm font-bold text-slate-900">All Purchase Orders</h3>
       </div>
       
-      <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+      <div className="divide-y divide-slate-100">
         {sortedOrders.map((order, index) => (
           <motion.div
             key={order.id}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.02 }}
-            className="px-5 py-3 hover:bg-slate-50 transition-colors cursor-pointer group"
+            className="px-5 py-4 hover:bg-slate-50 transition-colors cursor-pointer group"
+            data-testid={`card-po-${order.id}`}
           >
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <p className="font-mono text-sm font-bold text-slate-900 group-hover:text-primary transition-colors">
+                <p className="font-mono text-sm font-bold text-slate-900 group-hover:text-primary transition-colors mb-1">
                   {order.poNumber}
                 </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-600 font-medium bg-slate-100 px-2.5 py-1 rounded-full whitespace-nowrap">
+                <p className="text-xs text-slate-600 font-medium">
                   {order.vendorName}
                 </p>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 justify-end text-slate-600">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                    <p className="text-xs font-medium">
+                      {formatDate(order.orderDate)}
+                    </p>
+                  </div>
+                  {order.deliveryDate && (
+                    <div className="flex items-center gap-1.5 justify-end text-slate-500">
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      <p className="text-xs">
+                        {formatDate(order.deliveryDate)}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </motion.div>

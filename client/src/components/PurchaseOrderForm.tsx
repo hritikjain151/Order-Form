@@ -217,7 +217,7 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
               </Button>
             </div>
 
-            <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+            <div className="space-y-2">
               {fields.map((field, index) => {
                 const selectedItem = getSelectedItemDetails(form.watch(`items.${index}.itemId`));
                 const filteredItems = getFilteredItems(index);
