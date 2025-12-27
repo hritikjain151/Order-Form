@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Plus, Trash2, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { z } from "zod";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 const insertPOItemSchema = z.object({
   itemId: z.coerce.number().min(1, "Item is required"),
@@ -29,13 +29,22 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
   const { data: items = [], isLoading: isLoadingItems } = useItems();
   const [searchQueries, setSearchQueries] = useState<Record<number, string>>({});
 
+  const calculateDeliveryDate = (orderDate: Date) => {
+    const delivery = new Date(orderDate);
+    delivery.setDate(delivery.getDate() + 20);
+    return delivery;
+  };
+
+  const today = new Date();
+  const defaultDeliveryDate = calculateDeliveryDate(today);
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       poNumber: "",
       vendorName: "RUBBER METSO",
-      orderDate: new Date(),
-      deliveryDate: undefined,
+      orderDate: today,
+      deliveryDate: defaultDeliveryDate,
       remarks: "",
       items: [
         {
@@ -46,6 +55,16 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
       ],
     },
   });
+
+  const orderDateValue = form.watch("orderDate");
+
+  // Auto-update delivery date when order date changes
+  useEffect(() => {
+    if (orderDateValue) {
+      const newDeliveryDate = calculateDeliveryDate(orderDateValue);
+      form.setValue("deliveryDate", newDeliveryDate);
+    }
+  }, [orderDateValue, form]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -158,13 +177,13 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
                 name="deliveryDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs text-slate-700 font-medium">Delivery Date</FormLabel>
+                    <FormLabel className="text-xs text-slate-700 font-medium">Delivery Date (Auto-calculated: +20 days)</FormLabel>
                     <FormControl>
                       <Input 
                         type="date" 
                         className="rounded-lg h-9 text-sm" 
                         value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
-                        onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : undefined)}
+                        onChange={(e) => field.onChange(new Date(e.target.value))}
                         data-testid="input-delivery-date"
                       />
                     </FormControl>

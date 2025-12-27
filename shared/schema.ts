@@ -64,8 +64,9 @@ export const insertPurchaseOrderSchema = createInsertSchema(purchaseOrders).omit
 }).extend({
   poNumber: z.string().min(1, "PO Number is required"),
   vendorName: z.enum(VENDOR_OPTIONS),
-  orderDate: z.coerce.date(),
-  deliveryDate: z.coerce.date().optional(),
+  orderDate: z.coerce.date().min(new Date("2000-01-01"), "Order Date is required"),
+  deliveryDate: z.coerce.date().min(new Date("2000-01-01"), "Delivery Date is required"),
+  remarks: z.string().optional(),
 });
 
 export const insertPurchaseOrderItemSchema = z.object({
