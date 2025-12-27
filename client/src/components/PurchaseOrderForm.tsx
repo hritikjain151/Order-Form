@@ -254,16 +254,30 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
                                 type="text"
                                 placeholder="Search material number..."
                                 className="w-full pl-8 pr-3 py-2 rounded-md border border-slate-200 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/10"
-                                value={searchQueries[index] || ""}
-                                onChange={(e) => setSearchQueries(prev => ({
-                                  ...prev,
-                                  [index]: e.target.value
-                                }))}
+                                value={selectedItem ? selectedItem.materialNumber : (searchQueries[index] || "")}
+                                onChange={(e) => {
+                                  if (selectedItem) {
+                                    selectField.onChange(0);
+                                  }
+                                  setSearchQueries(prev => ({
+                                    ...prev,
+                                    [index]: e.target.value
+                                  }));
+                                }}
+                                onFocus={(e) => {
+                                  if (selectedItem) {
+                                    selectField.onChange(0);
+                                    setSearchQueries(prev => ({
+                                      ...prev,
+                                      [index]: e.target.value
+                                    }));
+                                  }
+                                }}
                                 data-testid={`input-search-material-${index}`}
                               />
                             </div>
                             
-                            {filteredItems.length > 0 && (
+                            {searchQueries[index] && filteredItems.length > 0 && (
                               <div className="mt-1 border border-slate-200 rounded-md bg-white max-h-32 overflow-y-auto z-10 absolute w-full md:w-auto">
                                 {filteredItems.map((item: Item) => (
                                   <button
