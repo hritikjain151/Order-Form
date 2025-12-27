@@ -1,4 +1,4 @@
-import { Home, Package } from "lucide-react";
+import { Home, Package, FileText } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -21,6 +21,11 @@ const items = [
     title: "Manage Items",
     icon: Package,
     href: "/items",
+  },
+  {
+    title: "Item Details",
+    icon: FileText,
+    href: "/item-details",
   },
 ];
 

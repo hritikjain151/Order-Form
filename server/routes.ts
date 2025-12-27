@@ -34,6 +34,28 @@ export async function registerRoutes(
     }
   });
 
+  app.patch(api.items.update.path, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const input = insertItemSchema.parse(req.body);
+      const item = await storage.updateItem(id, input);
+      res.json(item);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      } else if (err instanceof Error && err.message.includes('not found')) {
+        res.status(404).json({ message: err.message });
+      } else if (err instanceof Error && err.message.includes('already exists')) {
+        res.status(409).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+
   // Purchase Orders routes
   app.get(api.purchaseOrders.list.path, async (req, res) => {
     const pos = await storage.getPurchaseOrders();

@@ -57,6 +57,53 @@ export function useCreateItem() {
   });
 }
 
+export function useUpdateItem() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: InsertItem }) => {
+      const res = await fetch(api.items.update.path.replace(':id', String(id)), {
+        method: api.items.update.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        if (res.status === 409) {
+          const error = await res.json();
+          throw new Error(error.message || "Material Number already exists");
+        }
+        if (res.status === 400) {
+          const error = await res.json();
+          throw new Error(error.message || "Validation failed");
+        }
+        if (res.status === 404) {
+          const error = await res.json();
+          throw new Error(error.message || "Item not found");
+        }
+        throw new Error("Failed to update item");
+      }
+      
+      return api.items.update.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.items.list.path] });
+      toast({
+        title: "Success",
+        description: "Item updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
 export function usePurchaseOrders() {
   return useQuery({
     queryKey: [api.purchaseOrders.list.path],

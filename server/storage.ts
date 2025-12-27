@@ -18,6 +18,7 @@ export interface IStorage {
   getItemByMaterialNumber(materialNumber: string): Promise<Item | undefined>;
   getItemById(id: number): Promise<Item | undefined>;
   createItem(item: InsertItem): Promise<Item>;
+  updateItem(id: number, item: InsertItem): Promise<Item>;
 
   // Purchase Orders
   getPurchaseOrders(): Promise<PurchaseOrderWithItems[]>;
@@ -48,6 +49,24 @@ export class DatabaseStorage implements IStorage {
     }
     const [created] = await db.insert(items).values(item).returning();
     return created;
+  }
+
+  async updateItem(id: number, item: InsertItem): Promise<Item> {
+    const existing = await this.getItemById(id);
+    if (!existing) {
+      throw new Error('Item not found');
+    }
+    
+    // Check if material number is being changed and if the new one already exists
+    if (item.materialNumber.toLowerCase() !== existing.materialNumber.toLowerCase()) {
+      const duplicate = await this.getItemByMaterialNumber(item.materialNumber);
+      if (duplicate) {
+        throw new Error(`Material Number '${item.materialNumber}' already exists`);
+      }
+    }
+    
+    const [updated] = await db.update(items).set(item).where(eq(items.id, id)).returning();
+    return updated;
   }
 
   // Purchase Orders

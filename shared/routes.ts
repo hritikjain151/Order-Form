@@ -37,6 +37,16 @@ export const api = {
         409: errorSchemas.conflict,
       },
     },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/items/:id',
+      input: insertItemSchema,
+      responses: {
+        200: z.custom<any>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
   },
   purchaseOrders: {
     list: {

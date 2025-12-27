@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import Home from "@/pages/Home";
 import ItemsPage from "@/pages/Items";
+import ItemDetailsPage from "@/pages/ItemDetails";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -14,6 +15,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/items" component={ItemsPage} />
+      <Route path="/item-details" component={ItemDetailsPage} />
       <Route component={NotFound} />
     </Switch>
   );
