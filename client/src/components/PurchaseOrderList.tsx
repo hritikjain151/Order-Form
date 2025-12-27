@@ -60,7 +60,7 @@ export function PurchaseOrderList() {
             className="px-5 py-4 hover:bg-slate-50 transition-colors cursor-pointer group"
             data-testid={`card-po-${order.id}`}
           >
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <p className="font-mono text-sm font-bold text-slate-900 group-hover:text-primary transition-colors mb-1">
                   {order.poNumber}
@@ -69,23 +69,11 @@ export function PurchaseOrderList() {
                   {order.vendorName}
                 </p>
               </div>
-              <div className="text-right flex-shrink-0">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-1.5 justify-end text-slate-600">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                    <p className="text-xs font-medium">
-                      {formatDate(order.orderDate)}
-                    </p>
-                  </div>
-                  {order.deliveryDate && (
-                    <div className="flex items-center gap-1.5 justify-end text-slate-500">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      <p className="text-xs">
-                        {formatDate(order.deliveryDate)}
-                      </p>
-                    </div>
-                  )}
-                </div>
+              <div className="flex items-center gap-1.5 text-slate-600 flex-shrink-0">
+                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                <p className="text-xs font-medium">
+                  {formatDate(order.orderDate)}
+                </p>
               </div>
             </div>
           </motion.div>
