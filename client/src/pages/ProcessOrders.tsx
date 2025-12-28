@@ -3,24 +3,30 @@ import { PROCESS_STAGES } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Check, Edit2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 
-interface EditingStage {
+interface EditingProcess {
   itemId: number;
   stageIndex: number;
+  currentRemarks: string;
+  isCompleted: boolean;
 }
 
 export default function ProcessOrdersPage() {
   const { data: purchaseOrders = [], isLoading } = usePurchaseOrders();
   const updateProcessStageMutation = useUpdateProcessStage();
-  const [editingStage, setEditingStage] = useState<EditingStage | null>(null);
+  const [editingProcess, setEditingProcess] = useState<EditingProcess | null>(null);
   const [remarks, setRemarks] = useState("");
-  const [completed, setCompleted] = useState(false);
+  const [status, setStatus] = useState<"under-process" | "completed">("under-process");
 
   const getCompletedCount = (processes: any[]) => {
     return processes.filter(p => p.completed).length;
+  };
+
+  const getCurrentStageIndex = (processes: any[]) => {
+    return processes.findIndex(p => !p.completed);
   };
 
   const getProgressPercentage = (processes: any[]) => {
@@ -28,23 +34,27 @@ export default function ProcessOrdersPage() {
     return (count / processes.length) * 100;
   };
 
-  const handleOpenEdit = (itemId: number, stageIndex: number, currentRemarks: string, isCompleted: boolean) => {
-    setEditingStage({ itemId, stageIndex });
+  const handleOpenProcessDialog = (itemId: number, stageIndex: number, currentRemarks: string, isCompleted: boolean) => {
+    setEditingProcess({ itemId, stageIndex, currentRemarks, isCompleted });
     setRemarks(currentRemarks);
-    setCompleted(isCompleted);
+    setStatus(isCompleted ? "completed" : "under-process");
   };
 
-  const handleSaveStage = () => {
-    if (editingStage) {
+  const handleSaveProcess = () => {
+    if (editingProcess) {
+      const isCompleted = status === "completed";
       updateProcessStageMutation.mutate({
-        id: editingStage.itemId,
-        stageIndex: editingStage.stageIndex,
+        id: editingProcess.itemId,
+        stageIndex: editingProcess.stageIndex,
         remarks,
-        completed,
+        completed: isCompleted,
+      }, {
+        onSuccess: () => {
+          setEditingProcess(null);
+          setRemarks("");
+          setStatus("under-process");
+        }
       });
-      setEditingStage(null);
-      setRemarks("");
-      setCompleted(false);
     }
   };
 
@@ -114,47 +124,55 @@ export default function ProcessOrdersPage() {
                         const processes = JSON.parse(poItem.processes || "[]");
                         const completedCount = getCompletedCount(processes);
                         const progressPercentage = getProgressPercentage(processes);
+                        const currentStageIndex = getCurrentStageIndex(processes);
+                        const currentStage = currentStageIndex >= 0 ? processes[currentStageIndex] : null;
+                        const unitPrice = poItem.priceOverride ? parseFloat(poItem.priceOverride) : parseFloat(poItem.item.price);
 
                         return (
                           <tr key={poItem.id} className="hover:bg-slate-50 transition-colors">
                             <td className="px-6 py-4 text-sm font-medium text-slate-900">{poItem.item.itemName}</td>
                             <td className="px-6 py-4 text-sm text-slate-700">{poItem.item.materialNumber}</td>
                             <td className="px-6 py-4 text-sm text-slate-700">{poItem.quantity}</td>
-                            <td className="px-6 py-4 text-sm text-slate-700">${parseFloat(poItem.unitPrice).toFixed(2)}</td>
-                            <td className="px-6 py-4 text-sm text-slate-700">{poItem.deliveryDate ? format(new Date(poItem.deliveryDate), "MMM dd, yyyy") : "N/A"}</td>
+                            <td className="px-6 py-4 text-sm text-slate-700">${unitPrice.toFixed(2)}</td>
+                            <td className="px-6 py-4 text-sm text-slate-700">{po.deliveryDate ? format(new Date(po.deliveryDate), "MMM dd, yyyy") : "N/A"}</td>
                             <td className="px-6 py-4">
-                              <div className="flex flex-col items-start gap-2 min-w-96">
-                                <div className="flex items-center justify-between w-full">
-                                  <span className="text-xs font-medium text-slate-600">11-Stage Process</span>
-                                  <span className="text-xs font-semibold text-slate-900">{completedCount}/11</span>
-                                </div>
-                                <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden relative group cursor-pointer">
-                                  <div
-                                    className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-300"
-                                    style={{ width: `${progressPercentage}%` }}
-                                  />
-                                  {/* Stages tooltip on hover */}
-                                  <div className="absolute left-0 top-full mt-1 w-full hidden group-hover:block bg-slate-900 text-white text-xs rounded py-2 px-3 z-10 whitespace-normal">
-                                    <div className="grid grid-cols-2 gap-1">
-                                      {processes.map((p: any, idx: number) => (
-                                        <div key={idx} className="flex items-center gap-1">
-                                          <span className={p.completed ? "text-emerald-400" : "text-slate-400"}>
-                                            {p.completed ? "✓" : "○"}
-                                          </span>
-                                          <span className="text-xs">{PROCESS_STAGES[idx]}</span>
-                                        </div>
-                                      ))}
+                              <div className="flex flex-col items-start gap-3 min-w-96">
+                                {/* Current Process Status */}
+                                {currentStage && (
+                                  <div className="w-full">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-xs font-semibold text-slate-900">{PROCESS_STAGES[currentStageIndex]}</span>
+                                      <span className="text-xs text-slate-500">(Current)</span>
                                     </div>
+                                    {currentStage.remarks && (
+                                      <p className="text-xs text-slate-600 italic">"{currentStage.remarks}"</p>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                {/* Progress Bar */}
+                                <div className="w-full">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-medium text-slate-600">Process Progress</span>
+                                    <span className="text-xs font-semibold text-slate-900">{completedCount}/11</span>
+                                  </div>
+                                  <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-300"
+                                      style={{ width: `${progressPercentage}%` }}
+                                    />
                                   </div>
                                 </div>
+
+                                {/* Process Button */}
                                 <Button
                                   size="sm"
-                                  variant="ghost"
-                                  className="text-xs"
-                                  onClick={() => handleOpenEdit(poItem.id, 0, "", false)}
-                                  data-testid={`button-edit-item-${poItem.id}`}
+                                  className="w-full text-xs"
+                                  onClick={() => currentStageIndex >= 0 && handleOpenProcessDialog(poItem.id, currentStageIndex, currentStage?.remarks || "", false)}
+                                  disabled={currentStageIndex < 0}
+                                  data-testid={`button-process-${poItem.id}`}
                                 >
-                                  Edit Stages
+                                  {currentStageIndex < 0 ? "All Stages Completed" : "Update Process"}
                                 </Button>
                               </div>
                             </td>
@@ -170,20 +188,26 @@ export default function ProcessOrdersPage() {
         )}
       </div>
 
-      {/* Edit Modal */}
-      <Dialog open={!!editingStage} onOpenChange={(open) => !open && setEditingStage(null)}>
+      {/* Process Modal */}
+      <Dialog open={!!editingProcess} onOpenChange={(open) => !open && setEditingProcess(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Update Process Stage</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {editingProcess && (
+              <div>
+                <p className="text-sm font-semibold text-slate-900 mb-1">
+                  {PROCESS_STAGES[editingProcess.stageIndex]}
+                </p>
+                <p className="text-xs text-slate-600">
+                  Mark this stage as complete or under process
+                </p>
+              </div>
+            )}
+            
             <div>
-              <p className="text-sm font-semibold text-slate-900 mb-2">
-                {editingStage && PROCESS_STAGES[editingStage.stageIndex]}
-              </p>
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-slate-700 block mb-2">Remarks</label>
+              <label className="text-sm font-semibold text-slate-700 block mb-3">Remarks</label>
               <Textarea
                 placeholder="Add remarks for this stage..."
                 value={remarks}
@@ -192,30 +216,61 @@ export default function ProcessOrdersPage() {
                 data-testid="input-process-remarks"
               />
             </div>
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="completed"
-                checked={completed}
-                onChange={(e) => setCompleted(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300"
-                data-testid="checkbox-process-completed"
-              />
-              <label htmlFor="completed" className="text-sm font-medium text-slate-700 cursor-pointer">
-                Mark as completed
-              </label>
+
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-slate-700 block">Status</label>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 p-3 border border-slate-200 rounded-md hover:bg-slate-50 cursor-pointer transition-colors"
+                  onClick={() => setStatus("under-process")}
+                >
+                  <input
+                    type="radio"
+                    id="under-process"
+                    name="status"
+                    value="under-process"
+                    checked={status === "under-process"}
+                    onChange={() => setStatus("under-process")}
+                    className="w-4 h-4"
+                    data-testid="radio-under-process"
+                  />
+                  <label htmlFor="under-process" className="text-sm font-medium text-slate-700 cursor-pointer flex-1">
+                    Under Process
+                  </label>
+                  <span className="text-xs text-slate-500">No progress</span>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 border border-slate-200 rounded-md hover:bg-slate-50 cursor-pointer transition-colors"
+                  onClick={() => setStatus("completed")}
+                >
+                  <input
+                    type="radio"
+                    id="completed"
+                    name="status"
+                    value="completed"
+                    checked={status === "completed"}
+                    onChange={() => setStatus("completed")}
+                    className="w-4 h-4"
+                    data-testid="radio-completed"
+                  />
+                  <label htmlFor="completed" className="text-sm font-medium text-slate-700 cursor-pointer flex-1">
+                    Completed
+                  </label>
+                  <span className="text-xs text-emerald-600 font-medium">Mark done</span>
+                </div>
+              </div>
             </div>
+
             <div className="flex gap-3 pt-4">
               <Button
                 variant="outline"
-                onClick={() => setEditingStage(null)}
+                onClick={() => setEditingProcess(null)}
                 className="flex-1"
                 data-testid="button-cancel-process"
               >
                 Cancel
               </Button>
               <Button
-                onClick={handleSaveStage}
+                onClick={handleSaveProcess}
                 disabled={updateProcessStageMutation.isPending}
                 className="flex-1"
                 data-testid="button-save-process"
