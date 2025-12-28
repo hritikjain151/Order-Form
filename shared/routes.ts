@@ -61,6 +61,20 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    updateProcess: {
+      method: 'PATCH' as const,
+      path: '/api/purchase-order-items/:id/process',
+      input: z.object({
+        stageIndex: z.number(),
+        remarks: z.string().optional(),
+        completed: z.boolean().optional(),
+      }),
+      responses: {
+        200: z.custom<any>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
   },
   purchaseOrders: {
     list: {

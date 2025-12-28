@@ -118,6 +118,28 @@ export async function registerRoutes(
     }
   });
 
+  app.patch(api.purchaseOrderItems.updateProcess.path, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const { stageIndex, remarks, completed } = req.body;
+      
+      if (stageIndex === undefined) {
+        return res.status(400).json({ message: 'Stage index is required' });
+      }
+
+      const item = await storage.updatePurchaseOrderItemProcess(id, stageIndex, remarks, completed);
+      res.json(item);
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('not found')) {
+        res.status(404).json({ message: 'Item not found' });
+      } else if (err instanceof Error && err.message.includes('Invalid stage index')) {
+        res.status(400).json({ message: 'Invalid stage index' });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+
   return httpServer;
 }
 

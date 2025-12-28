@@ -206,3 +206,46 @@ export function useUpdateItemStatus() {
     },
   });
 }
+
+export function useUpdateProcessStage() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, stageIndex, remarks, completed }: { id: number; stageIndex: number; remarks?: string; completed?: boolean }) => {
+      const res = await fetch(api.purchaseOrderItems.updateProcess.path.replace(':id', String(id)), {
+        method: api.purchaseOrderItems.updateProcess.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stageIndex, remarks, completed }),
+      });
+
+      if (!res.ok) {
+        if (res.status === 404) {
+          const error = await res.json();
+          throw new Error(error.message || "Item not found");
+        }
+        if (res.status === 400) {
+          const error = await res.json();
+          throw new Error(error.message || "Invalid request");
+        }
+        throw new Error("Failed to update process stage");
+      }
+
+      return api.purchaseOrderItems.updateProcess.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.purchaseOrders.list.path] });
+      toast({
+        title: "Success",
+        description: "Process stage updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}

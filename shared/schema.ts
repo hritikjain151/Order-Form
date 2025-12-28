@@ -36,7 +36,19 @@ export const purchaseOrders = pgTable("purchase_orders", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const STATUS_OPTIONS = ["Pending", "Processing", "Shipped", "Delivered"] as const;
+export const PROCESS_STAGES = [
+  "Feasibility",
+  "Designing",
+  "Cutting",
+  "Internal Quality",
+  "Processing",
+  "Fabrication",
+  "Finishing",
+  "Internal Quality",
+  "Customer Quality",
+  "Ready For Dispatch",
+  "Delivered"
+] as const;
 
 export const purchaseOrderItems = pgTable("purchase_order_items", {
   id: serial("id").primaryKey(),
@@ -44,7 +56,7 @@ export const purchaseOrderItems = pgTable("purchase_order_items", {
   itemId: integer("item_id").notNull().references(() => items.id),
   quantity: integer("quantity").notNull(),
   priceOverride: decimal("price_override", { precision: 12, scale: 2 }),
-  status: text("status").notNull().default("Pending"),
+  processes: text("processes"),
 });
 
 export const insertItemSchema = createInsertSchema(items).omit({ 

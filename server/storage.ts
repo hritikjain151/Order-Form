@@ -25,6 +25,7 @@ export interface IStorage {
   getPurchaseOrder(id: number): Promise<PurchaseOrderWithItems | undefined>;
   createPurchaseOrder(po: InsertPurchaseOrder, items: (InsertPurchaseOrderItem & { item: Item })[]): Promise<PurchaseOrderWithItems>;
   updatePurchaseOrderItemStatus(id: number, status: string): Promise<any>;
+  updatePurchaseOrderItemProcess(id: number, stageIndex: number, remarks?: string, completed?: boolean): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -71,6 +72,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Purchase Orders
+  private initializeProcesses(processesJson: string | null): string {
+    const PROCESS_STAGES = [
+      "Feasibility", "Designing", "Cutting", "Internal Quality", "Processing",
+      "Fabrication", "Finishing", "Internal Quality", "Customer Quality", "Ready For Dispatch", "Delivered"
+    ];
+    
+    if (!processesJson) {
+      return JSON.stringify(PROCESS_STAGES.map(stage => ({ stage, remarks: "", completed: false })));
+    }
+    return processesJson;
+  }
+
   async getPurchaseOrders(): Promise<PurchaseOrderWithItems[]> {
     const pos = await db.select().from(purchaseOrders);
     const result: PurchaseOrderWithItems[] = [];
@@ -80,7 +93,7 @@ export class DatabaseStorage implements IStorage {
       const itemsWithDetails = await Promise.all(
         poItems.map(async (poItem) => {
           const [itemDetail] = await db.select().from(items).where(eq(items.id, poItem.itemId));
-          return { ...poItem, item: itemDetail };
+          return { ...poItem, item: itemDetail, processes: this.initializeProcesses(poItem.processes) };
         })
       );
       result.push({ ...po, items: itemsWithDetails });
@@ -97,19 +110,25 @@ export class DatabaseStorage implements IStorage {
     const itemsWithDetails = await Promise.all(
       poItems.map(async (poItem) => {
         const [itemDetail] = await db.select().from(items).where(eq(items.id, poItem.itemId));
-        return { ...poItem, item: itemDetail };
+        return { ...poItem, item: itemDetail, processes: this.initializeProcesses(poItem.processes) };
       })
     );
     return { ...po, items: itemsWithDetails };
   }
 
   async createPurchaseOrder(insertPo: InsertPurchaseOrder, itemsData: (InsertPurchaseOrderItem & { item: Item })[]): Promise<PurchaseOrderWithItems> {
+    const PROCESS_STAGES = [
+      "Feasibility", "Designing", "Cutting", "Internal Quality", "Processing",
+      "Fabrication", "Finishing", "Internal Quality", "Customer Quality", "Ready For Dispatch", "Delivered"
+    ];
+    
     const [po] = await db.insert(purchaseOrders).values(insertPo).returning();
     
     if (itemsData.length > 0) {
       const poItems = itemsData.map(({ item, ...poItem }) => ({ 
         ...poItem, 
-        poId: po.id 
+        poId: po.id,
+        processes: JSON.stringify(PROCESS_STAGES.map(stage => ({ stage, remarks: "", completed: false })))
       }));
       await db.insert(purchaseOrderItems).values(poItems);
     }
@@ -118,14 +137,32 @@ export class DatabaseStorage implements IStorage {
     const itemsWithDetails = await Promise.all(
       poItems.map(async (poItem) => {
         const [itemDetail] = await db.select().from(items).where(eq(items.id, poItem.itemId));
-        return { ...poItem, item: itemDetail };
+        return { ...poItem, item: itemDetail, processes: this.initializeProcesses(poItem.processes) };
       })
     );
     return { ...po, items: itemsWithDetails };
   }
 
   async updatePurchaseOrderItemStatus(id: number, status: string): Promise<any> {
-    const [updated] = await db.update(purchaseOrderItems).set({ status }).where(eq(purchaseOrderItems.id, id)).returning();
+    const [item] = await db.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.id, id));
+    if (!item) throw new Error('Item not found');
+    const [updated] = await db.update(purchaseOrderItems).set({ processes: this.initializeProcesses(item.processes) }).where(eq(purchaseOrderItems.id, id)).returning();
+    return updated;
+  }
+
+  async updatePurchaseOrderItemProcess(id: number, stageIndex: number, remarks?: string, completed?: boolean): Promise<any> {
+    const [item] = await db.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.id, id));
+    if (!item) throw new Error('Item not found');
+    
+    const processes = JSON.parse(this.initializeProcesses(item.processes));
+    if (stageIndex < 0 || stageIndex >= processes.length) {
+      throw new Error('Invalid stage index');
+    }
+    
+    if (remarks !== undefined) processes[stageIndex].remarks = remarks;
+    if (completed !== undefined) processes[stageIndex].completed = completed;
+    
+    const [updated] = await db.update(purchaseOrderItems).set({ processes: JSON.stringify(processes) }).where(eq(purchaseOrderItems.id, id)).returning();
     return updated;
   }
 }

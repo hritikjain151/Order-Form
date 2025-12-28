@@ -1,46 +1,51 @@
-import { usePurchaseOrders } from "@/hooks/use-purchase-orders";
-import { useUpdateItemStatus } from "@/hooks/use-purchase-orders";
-import { STATUS_OPTIONS } from "@shared/schema";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
-import { Loader2, CheckCircle } from "lucide-react";
+import { usePurchaseOrders, useUpdateProcessStage } from "@/hooks/use-purchase-orders";
+import { PROCESS_STAGES } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Check, Edit2 } from "lucide-react";
 import { format } from "date-fns";
+import { useState } from "react";
+
+interface EditingStage {
+  itemId: number;
+  stageIndex: number;
+}
 
 export default function ProcessOrdersPage() {
   const { data: purchaseOrders = [], isLoading } = usePurchaseOrders();
-  const updateStatusMutation = useUpdateItemStatus();
+  const updateProcessStageMutation = useUpdateProcessStage();
+  const [editingStage, setEditingStage] = useState<EditingStage | null>(null);
+  const [remarks, setRemarks] = useState("");
+  const [completed, setCompleted] = useState(false);
 
-  const getStatusIndex = (status: string) => {
-    return STATUS_OPTIONS.indexOf(status as any);
+  const getCompletedCount = (processes: any[]) => {
+    return processes.filter(p => p.completed).length;
   };
 
-  const getProgressPercentage = (status: string) => {
-    const index = getStatusIndex(status);
-    return ((index + 1) / STATUS_OPTIONS.length) * 100;
+  const getProgressPercentage = (processes: any[]) => {
+    const count = getCompletedCount(processes);
+    return (count / processes.length) * 100;
   };
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      "Pending": "text-slate-600",
-      "Processing": "text-blue-600",
-      "Shipped": "text-purple-600",
-      "Delivered": "text-green-600",
-    };
-    return colors[status] || "text-slate-600";
+  const handleOpenEdit = (itemId: number, stageIndex: number, currentRemarks: string, isCompleted: boolean) => {
+    setEditingStage({ itemId, stageIndex });
+    setRemarks(currentRemarks);
+    setCompleted(isCompleted);
   };
 
-  const getProgressColor = (status: string) => {
-    const colors: Record<string, string> = {
-      "Pending": "bg-slate-300",
-      "Processing": "bg-blue-400",
-      "Shipped": "bg-purple-400",
-      "Delivered": "bg-green-400",
-    };
-    return colors[status] || "bg-slate-300";
-  };
-
-  const handleStatusChange = (itemId: number, newStatus: string) => {
-    updateStatusMutation.mutate({ id: itemId, status: newStatus });
+  const handleSaveStage = () => {
+    if (editingStage) {
+      updateProcessStageMutation.mutate({
+        id: editingStage.itemId,
+        stageIndex: editingStage.stageIndex,
+        remarks,
+        completed,
+      });
+      setEditingStage(null);
+      setRemarks("");
+      setCompleted(false);
+    }
   };
 
   if (isLoading) {
@@ -55,20 +60,20 @@ export default function ProcessOrdersPage() {
     <div className="h-full bg-slate-50 overflow-y-auto pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight font-display">Process Orders</h1>
-          <p className="text-sm text-slate-600 mt-2">Track and manage the status of your active purchase orders</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Process Orders</h1>
+          <p className="text-sm text-slate-600 mt-2">Track and manage the detailed processing stages for your purchase order items</p>
         </div>
 
         {purchaseOrders.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
+          <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
             <p className="text-slate-600 text-sm">No purchase orders found</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {purchaseOrders.map((po) => (
-              <div key={po.id} className="bg-white rounded-2xl border border-slate-100 shadow-lg shadow-slate-200/30 overflow-hidden">
+              <div key={po.id} className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 {/* PO Header */}
-                <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
+                <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                       <p className="text-xs text-slate-600 uppercase tracking-wide font-semibold">PO Number</p>
@@ -76,108 +81,172 @@ export default function ProcessOrdersPage() {
                     </div>
                     <div>
                       <p className="text-xs text-slate-600 uppercase tracking-wide font-semibold">Vendor</p>
-                      <p className="text-sm text-slate-900 mt-1">{po.vendorName}</p>
+                      <p className="text-sm text-slate-700 mt-1">{po.vendorName}</p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-600 uppercase tracking-wide font-semibold">Order Date</p>
-                      <p className="text-sm text-slate-900 mt-1">{format(new Date(po.orderDate), "MMM dd, yyyy")}</p>
+                      <p className="text-sm text-slate-700 mt-1">{format(new Date(po.orderDate), "MMM dd, yyyy")}</p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-600 uppercase tracking-wide font-semibold">Delivery Date</p>
-                      <p className="text-sm text-slate-900 mt-1">
+                      <p className="text-sm text-slate-700 mt-1">
                         {po.deliveryDate ? format(new Date(po.deliveryDate), "MMM dd, yyyy") : "N/A"}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Items Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50">
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                          Material
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                          Item Name
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                          Qty
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                          Price
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                          Progress
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {po.items.map((poItem) => (
-                        <tr key={poItem.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                          <td className="px-6 py-4 text-sm font-mono font-bold text-slate-900">
-                            {poItem.item.materialNumber}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-slate-700">{poItem.item.itemName}</td>
-                          <td className="px-6 py-4 text-sm text-slate-700 font-medium">{poItem.quantity}</td>
-                          <td className="px-6 py-4 text-sm text-slate-700 font-medium">
-                            ${poItem.priceOverride || poItem.item.price}
-                          </td>
-                          <td className="px-6 py-4">
-                            <Select
-                              value={poItem.status || "Pending"}
-                              onValueChange={(newStatus) => handleStatusChange(poItem.id, newStatus)}
-                            >
-                              <SelectTrigger className="w-40 h-9 text-sm rounded-lg border-slate-200">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {STATUS_OPTIONS.map((status) => (
-                                  <SelectItem key={status} value={status} className="text-sm">
-                                    {status}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex-1 min-w-40">
-                                <Progress
-                                  value={getProgressPercentage(poItem.status || "Pending")}
-                                  className="h-2 rounded-full bg-slate-200"
-                                />
-                                <p className={`text-xs font-semibold mt-1.5 ${getStatusColor(poItem.status || "Pending")}`}>
-                                  {poItem.status || "Pending"}
-                                </p>
-                              </div>
-                              {poItem.status === "Delivered" && (
-                                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                {/* Items */}
+                <div className="divide-y divide-slate-200">
+                  {po.items.map((poItem) => {
+                    const processes = JSON.parse(poItem.processes || "[]");
+                    const completedCount = getCompletedCount(processes);
+                    const progressPercentage = getProgressPercentage(processes);
 
-                {/* PO Footer */}
-                {po.remarks && (
-                  <div className="px-6 py-3 bg-slate-50 border-t border-slate-200">
-                    <p className="text-xs text-slate-600 uppercase tracking-wide font-semibold">Remarks</p>
-                    <p className="text-sm text-slate-700 mt-1">{po.remarks}</p>
-                  </div>
-                )}
+                    return (
+                      <div key={poItem.id} className="p-6">
+                        {/* Item Header */}
+                        <div className="mb-6">
+                          <div className="flex items-baseline gap-4">
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">{poItem.item.itemName}</p>
+                              <p className="text-xs text-slate-600 mt-1">Material: {poItem.item.materialNumber}</p>
+                            </div>
+                            <div className="text-xs text-slate-600 ml-auto">
+                              <span className="font-semibold text-slate-900">{completedCount}/{processes.length}</span> stages completed
+                            </div>
+                          </div>
+                          <div className="mt-3 h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-300"
+                              style={{ width: `${progressPercentage}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Process Stages */}
+                        <div className="space-y-3">
+                          {processes.map((process: any, idx: number) => (
+                            <div
+                              key={idx}
+                              className={`flex items-start gap-4 p-4 rounded-md border transition-colors ${
+                                process.completed
+                                  ? "bg-emerald-50 border-emerald-200"
+                                  : "bg-slate-50 border-slate-200 hover:border-slate-300"
+                              }`}
+                            >
+                              {/* Stage Indicator */}
+                              <div className="flex-shrink-0 mt-0.5">
+                                {process.completed ? (
+                                  <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
+                                    <Check className="w-4 h-4 text-white" />
+                                  </div>
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-slate-300 flex items-center justify-center text-xs font-bold text-slate-700">
+                                    {idx + 1}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Stage Content */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className={`font-semibold ${process.completed ? "text-emerald-700" : "text-slate-900"}`}>
+                                    {PROCESS_STAGES[idx]}
+                                  </p>
+                                  {process.completed && <span className="text-xs font-medium text-emerald-700">Completed</span>}
+                                </div>
+                                {process.remarks && (
+                                  <p className="text-sm text-slate-600 mt-1 break-words">{process.remarks}</p>
+                                )}
+                              </div>
+
+                              {/* Edit Button */}
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="flex-shrink-0"
+                                onClick={() => handleOpenEdit(poItem.id, idx, process.remarks || "", process.completed)}
+                                data-testid={`button-edit-process-${poItem.id}-${idx}`}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Edit Modal */}
+      <Dialog open={!!editingStage} onOpenChange={(open) => !open && setEditingStage(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Process Stage</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-900 mb-2">
+                {editingStage && PROCESS_STAGES[editingStage.stageIndex]}
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-slate-700 block mb-2">Remarks</label>
+              <Textarea
+                placeholder="Add remarks for this stage..."
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                className="min-h-24 text-sm resize-none"
+                data-testid="input-process-remarks"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="completed"
+                checked={completed}
+                onChange={(e) => setCompleted(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300"
+                data-testid="checkbox-process-completed"
+              />
+              <label htmlFor="completed" className="text-sm font-medium text-slate-700 cursor-pointer">
+                Mark as completed
+              </label>
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setEditingStage(null)}
+                className="flex-1"
+                data-testid="button-cancel-process"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveStage}
+                disabled={updateProcessStageMutation.isPending}
+                className="flex-1"
+                data-testid="button-save-process"
+              >
+                {updateProcessStageMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
