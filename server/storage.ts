@@ -165,6 +165,20 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db.update(purchaseOrderItems).set({ processes: JSON.stringify(processes) }).where(eq(purchaseOrderItems.id, id)).returning();
     return updated;
   }
+
+  async updatePurchaseOrder(id: number, data: any): Promise<PurchaseOrderWithItems> {
+    const [po] = await db.update(purchaseOrders).set(data).where(eq(purchaseOrders.id, id)).returning();
+    if (!po) throw new Error('Purchase Order not found');
+    
+    const poItems = await db.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.poId, id));
+    const itemsWithDetails = await Promise.all(
+      poItems.map(async (poItem) => {
+        const [itemDetail] = await db.select().from(items).where(eq(items.id, poItem.itemId));
+        return { ...poItem, item: itemDetail, processes: this.initializeProcesses(poItem.processes) };
+      })
+    );
+    return { ...po, items: itemsWithDetails };
+  }
 }
 
 export const storage = new DatabaseStorage();

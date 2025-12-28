@@ -249,3 +249,46 @@ export function useUpdateProcessStage() {
     },
   });
 }
+
+export function useUpdatePurchaseOrder() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: InsertPurchaseOrder }) => {
+      const res = await fetch(api.purchaseOrders.update.path.replace(':id', String(id)), {
+        method: api.purchaseOrders.update.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        if (res.status === 400) {
+          const error = await res.json();
+          throw new Error(error.message || "Validation failed");
+        }
+        if (res.status === 404) {
+          const error = await res.json();
+          throw new Error(error.message || "Purchase Order not found");
+        }
+        throw new Error("Failed to update purchase order");
+      }
+
+      return api.purchaseOrders.update.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.purchaseOrders.list.path] });
+      toast({
+        title: "Success",
+        description: "Purchase Order updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}

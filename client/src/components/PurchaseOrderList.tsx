@@ -1,5 +1,7 @@
 import { usePurchaseOrders } from "@/hooks/use-purchase-orders";
-import { Loader2, Package, Calendar } from "lucide-react";
+import { Loader2, Package, Calendar, Edit2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 import { motion } from "framer-motion";
 
 export function PurchaseOrderList() {
@@ -57,7 +59,7 @@ export function PurchaseOrderList() {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.02 }}
-            className="px-5 py-4 hover:bg-slate-50 transition-colors cursor-pointer group"
+            className="px-5 py-4 hover:bg-slate-50 transition-colors group"
             data-testid={`card-po-${order.id}`}
           >
             <div className="flex items-center justify-between gap-4">
@@ -69,11 +71,23 @@ export function PurchaseOrderList() {
                   {order.vendorName}
                 </p>
               </div>
-              <div className="flex items-center gap-1.5 text-slate-600 flex-shrink-0">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                <p className="text-xs font-medium">
-                  {formatDate(order.orderDate)}
-                </p>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="flex items-center gap-1.5 text-slate-600">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  <p className="text-xs font-medium">
+                    {formatDate(order.orderDate)}
+                  </p>
+                </div>
+                <Link href={`/edit-po/${order.id}`} asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    data-testid={`button-edit-po-${order.id}`}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                </Link>
               </div>
             </div>
           </motion.div>
