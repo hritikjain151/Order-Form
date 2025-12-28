@@ -9,9 +9,9 @@ import { Card } from "@/components/ui/card";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRoute, useLocation } from "wouter";
-import { Loader2, ChevronLeft, Plus, Edit2, Trash2 } from "lucide-react";
+import { Loader2, ChevronLeft, Plus, Edit2, Trash2, Search } from "lucide-react";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function EditPurchaseOrderPage() {
@@ -31,17 +31,31 @@ export default function EditPurchaseOrderPage() {
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [itemQuantity, setItemQuantity] = useState("");
   const [itemPrice, setItemPrice] = useState("");
+  const [itemSearch, setItemSearch] = useState("");
 
   const form = useForm({
     resolver: zodResolver(insertPurchaseOrderSchema),
     defaultValues: {
-      poNumber: po?.poNumber || "",
-      vendorName: (po?.vendorName as any) || "RUBBER METSO",
-      orderDate: po?.orderDate ? new Date(po.orderDate) : new Date(),
-      deliveryDate: po?.deliveryDate ? new Date(po.deliveryDate) : new Date(),
-      remarks: po?.remarks || "",
+      poNumber: "",
+      vendorName: "RUBBER METSO",
+      orderDate: new Date(),
+      deliveryDate: new Date(),
+      remarks: "",
     },
   });
+
+  // Update form values when PO data loads
+  useEffect(() => {
+    if (po) {
+      form.reset({
+        poNumber: po.poNumber,
+        vendorName: (po.vendorName as any) || "RUBBER METSO",
+        orderDate: new Date(po.orderDate),
+        deliveryDate: new Date(po.deliveryDate),
+        remarks: po.remarks || "",
+      });
+    }
+  }, [po, form]);
 
   const onSubmit = (data: any) => {
     if (!poId) return;
@@ -52,6 +66,15 @@ export default function EditPurchaseOrderPage() {
           navigate("/");
         },
       }
+    );
+  };
+
+  const getFilteredItems = () => {
+    if (!itemSearch.trim()) return allItems;
+    const lowerQuery = itemSearch.toLowerCase();
+    return allItems.filter(item =>
+      item.materialNumber.toLowerCase().includes(lowerQuery) ||
+      item.itemName.toLowerCase().includes(lowerQuery)
     );
   };
 
@@ -70,6 +93,7 @@ export default function EditPurchaseOrderPage() {
         setSelectedItemId(null);
         setItemQuantity("");
         setItemPrice("");
+        setItemSearch("");
       }
     });
   };
@@ -122,6 +146,8 @@ export default function EditPurchaseOrderPage() {
       </div>
     );
   }
+
+  const filteredItems = getFilteredItems();
 
   return (
     <div className="h-full bg-slate-50 overflow-y-auto pb-20">
@@ -344,21 +370,43 @@ export default function EditPurchaseOrderPage() {
             <DialogTitle>Add Item to Purchase Order</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Item Search */}
             <div>
-              <label className="text-sm font-semibold text-slate-700 block mb-2">Item *</label>
+              <label className="text-sm font-semibold text-slate-700 block mb-2">Search Item by Name or Material Number</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  placeholder="e.g., MAT-12345 or Rubber Gasket"
+                  value={itemSearch}
+                  onChange={(e) => setItemSearch(e.target.value)}
+                  className="pl-10"
+                  data-testid="input-item-search"
+                />
+              </div>
+            </div>
+
+            {/* Item Dropdown - filtered results */}
+            <div>
+              <label className="text-sm font-semibold text-slate-700 block mb-2">Select Item *</label>
               <Select value={String(selectedItemId || "")} onValueChange={(val) => setSelectedItemId(Number(val))}>
                 <SelectTrigger data-testid="select-item">
                   <SelectValue placeholder="Select item" />
                 </SelectTrigger>
                 <SelectContent>
-                  {allItems.map((item) => (
-                    <SelectItem key={item.id} value={String(item.id)}>
-                      {item.itemName} ({item.materialNumber})
-                    </SelectItem>
-                  ))}
+                  {filteredItems.length > 0 ? (
+                    filteredItems.map((item) => (
+                      <SelectItem key={item.id} value={String(item.id)}>
+                        {item.itemName} ({item.materialNumber})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="p-2 text-sm text-slate-500">No items found</div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Quantity */}
             <div>
               <label className="text-sm font-semibold text-slate-700 block mb-2">Quantity *</label>
               <Input
@@ -370,6 +418,8 @@ export default function EditPurchaseOrderPage() {
                 data-testid="input-item-quantity"
               />
             </div>
+
+            {/* Unit Price */}
             <div>
               <label className="text-sm font-semibold text-slate-700 block mb-2">Unit Price (Optional)</label>
               <Input
@@ -381,10 +431,16 @@ export default function EditPurchaseOrderPage() {
                 data-testid="input-item-price"
               />
             </div>
+
+            {/* Actions */}
             <div className="flex gap-3 pt-4">
               <Button
                 variant="outline"
-                onClick={() => setAddingItem(false)}
+                onClick={() => {
+                  setAddingItem(false);
+                  setItemSearch("");
+                  setSelectedItemId(null);
+                }}
                 className="flex-1"
                 data-testid="button-cancel-add-item"
               >
