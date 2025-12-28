@@ -167,3 +167,42 @@ export function useCreatePurchaseOrder() {
     },
   });
 }
+
+export function useUpdateItemStatus() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const res = await fetch(api.purchaseOrderItems.updateStatus.path.replace(':id', String(id)), {
+        method: api.purchaseOrderItems.updateStatus.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!res.ok) {
+        if (res.status === 404) {
+          const error = await res.json();
+          throw new Error(error.message || "Item not found");
+        }
+        throw new Error("Failed to update item status");
+      }
+
+      return api.purchaseOrderItems.updateStatus.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.purchaseOrders.list.path] });
+      toast({
+        title: "Success",
+        description: "Status updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}

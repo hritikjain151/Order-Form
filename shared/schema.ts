@@ -36,12 +36,15 @@ export const purchaseOrders = pgTable("purchase_orders", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const STATUS_OPTIONS = ["Pending", "Processing", "Shipped", "Delivered"] as const;
+
 export const purchaseOrderItems = pgTable("purchase_order_items", {
   id: serial("id").primaryKey(),
   poId: integer("po_id").notNull().references(() => purchaseOrders.id, { onDelete: "cascade" }),
   itemId: integer("item_id").notNull().references(() => items.id),
   quantity: integer("quantity").notNull(),
   priceOverride: decimal("price_override", { precision: 12, scale: 2 }),
+  status: text("status").notNull().default("Pending"),
 });
 
 export const insertItemSchema = createInsertSchema(items).omit({ 

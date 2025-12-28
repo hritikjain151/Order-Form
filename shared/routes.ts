@@ -48,6 +48,20 @@ export const api = {
       },
     },
   },
+  purchaseOrderItems: {
+    updateStatus: {
+      method: 'PATCH' as const,
+      path: '/api/purchase-order-items/:id/status',
+      input: z.object({
+        status: z.string(),
+      }),
+      responses: {
+        200: z.custom<any>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
+  },
   purchaseOrders: {
     list: {
       method: 'GET' as const,

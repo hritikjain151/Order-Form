@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import Home from "@/pages/Home";
 import ItemsPage from "@/pages/Items";
 import ItemDetailsPage from "@/pages/ItemDetails";
+import ProcessOrdersPage from "@/pages/ProcessOrders";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/items" component={ItemsPage} />
       <Route path="/item-details" component={ItemDetailsPage} />
+      <Route path="/process-orders" component={ProcessOrdersPage} />
       <Route component={NotFound} />
     </Switch>
   );

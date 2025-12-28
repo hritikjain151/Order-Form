@@ -98,6 +98,26 @@ export async function registerRoutes(
     res.json(po);
   });
 
+  app.patch(api.purchaseOrderItems.updateStatus.path, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const { status } = req.body;
+      
+      if (!status) {
+        return res.status(400).json({ message: 'Status is required' });
+      }
+
+      const item = await storage.updatePurchaseOrderItemStatus(id, status);
+      res.json(item);
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('not found')) {
+        res.status(404).json({ message: 'Item not found' });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+
   return httpServer;
 }
 

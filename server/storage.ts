@@ -24,6 +24,7 @@ export interface IStorage {
   getPurchaseOrders(): Promise<PurchaseOrderWithItems[]>;
   getPurchaseOrder(id: number): Promise<PurchaseOrderWithItems | undefined>;
   createPurchaseOrder(po: InsertPurchaseOrder, items: (InsertPurchaseOrderItem & { item: Item })[]): Promise<PurchaseOrderWithItems>;
+  updatePurchaseOrderItemStatus(id: number, status: string): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -121,6 +122,11 @@ export class DatabaseStorage implements IStorage {
       })
     );
     return { ...po, items: itemsWithDetails };
+  }
+
+  async updatePurchaseOrderItemStatus(id: number, status: string): Promise<any> {
+    const [updated] = await db.update(purchaseOrderItems).set({ status }).where(eq(purchaseOrderItems.id, id)).returning();
+    return updated;
   }
 }
 
