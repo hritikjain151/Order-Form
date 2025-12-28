@@ -28,7 +28,7 @@ export default function EditPurchaseOrderPage() {
 
   const [editingItem, setEditingItem] = useState<any>(null);
   const [addingItem, setAddingItem] = useState(false);
-  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
   const [itemQuantity, setItemQuantity] = useState("");
   const [itemPrice, setItemPrice] = useState("");
   const [itemSearch, setItemSearch] = useState("");
@@ -70,7 +70,7 @@ export default function EditPurchaseOrderPage() {
   };
 
   const getFilteredItems = () => {
-    if (!itemSearch.trim()) return allItems;
+    if (!itemSearch.trim()) return [];
     const lowerQuery = itemSearch.toLowerCase();
     return allItems.filter(item =>
       item.materialNumber.toLowerCase().includes(lowerQuery) ||
@@ -78,19 +78,25 @@ export default function EditPurchaseOrderPage() {
     );
   };
 
+  const handleSelectItem = (item: any) => {
+    setSelectedItem(item);
+    setItemSearch("");
+    setItemPrice(item.price);
+  };
+
   const handleAddItem = () => {
-    if (!selectedItemId || !itemQuantity) return;
+    if (!selectedItem || !itemQuantity) return;
     addItemMutation.mutate({
       poId: poId!,
       data: {
-        itemId: selectedItemId,
+        itemId: selectedItem.id,
         quantity: parseInt(itemQuantity),
-        priceOverride: itemPrice ? parseFloat(itemPrice) : null,
+        priceOverride: itemPrice && itemPrice !== selectedItem.price ? parseFloat(itemPrice) : null,
       }
     }, {
       onSuccess: () => {
         setAddingItem(false);
-        setSelectedItemId(null);
+        setSelectedItem(null);
         setItemQuantity("");
         setItemPrice("");
         setItemSearch("");
@@ -105,7 +111,7 @@ export default function EditPurchaseOrderPage() {
       poId: poId!,
       data: {
         quantity: parseInt(itemQuantity) || editingItem.quantity,
-        priceOverride: itemPrice ? parseFloat(itemPrice) : editingItem.priceOverride,
+        priceOverride: itemPrice && itemPrice !== editingItem.item.price ? parseFloat(itemPrice) : editingItem.priceOverride,
       }
     }, {
       onSuccess: () => {
@@ -125,8 +131,10 @@ export default function EditPurchaseOrderPage() {
   const handleOpenEditModal = (item: any) => {
     setEditingItem(item);
     setItemQuantity(String(item.quantity));
-    setItemPrice(item.priceOverride ? String(item.priceOverride) : "");
+    setItemPrice(item.priceOverride ? String(item.priceOverride) : String(item.item.price));
   };
+
+  const filteredItems = getFilteredItems();
 
   if (isLoading) {
     return (
@@ -146,8 +154,6 @@ export default function EditPurchaseOrderPage() {
       </div>
     );
   }
-
-  const filteredItems = getFilteredItems();
 
   return (
     <div className="h-full bg-slate-50 overflow-y-auto pb-20">
@@ -364,104 +370,146 @@ export default function EditPurchaseOrderPage() {
       </div>
 
       {/* Add Item Dialog */}
-      <Dialog open={addingItem} onOpenChange={setAddingItem}>
+      <Dialog open={addingItem} onOpenChange={(open) => {
+        setAddingItem(open);
+        if (!open) {
+          setSelectedItem(null);
+          setItemQuantity("");
+          setItemPrice("");
+          setItemSearch("");
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add Item to Purchase Order</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Item Search */}
-            <div>
-              <label className="text-sm font-semibold text-slate-700 block mb-2">Search Item by Name or Material Number</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  placeholder="e.g., MAT-12345 or Rubber Gasket"
-                  value={itemSearch}
-                  onChange={(e) => setItemSearch(e.target.value)}
-                  className="pl-10"
-                  data-testid="input-item-search"
-                />
-              </div>
-            </div>
+            {!selectedItem ? (
+              <>
+                {/* Item Search */}
+                <div>
+                  <label className="text-sm font-semibold text-slate-700 block mb-2">Search Material Number or Item Name</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                    <Input
+                      placeholder="e.g., MAT-12345 or Rubber Gasket"
+                      value={itemSearch}
+                      onChange={(e) => setItemSearch(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-item-search"
+                      autoFocus
+                    />
+                  </div>
+                </div>
 
-            {/* Item Dropdown - filtered results */}
-            <div>
-              <label className="text-sm font-semibold text-slate-700 block mb-2">Select Item *</label>
-              <Select value={String(selectedItemId || "")} onValueChange={(val) => setSelectedItemId(Number(val))}>
-                <SelectTrigger data-testid="select-item">
-                  <SelectValue placeholder="Select item" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredItems.length > 0 ? (
-                    filteredItems.map((item) => (
-                      <SelectItem key={item.id} value={String(item.id)}>
-                        {item.itemName} ({item.materialNumber})
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <div className="p-2 text-sm text-slate-500">No items found</div>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Quantity */}
-            <div>
-              <label className="text-sm font-semibold text-slate-700 block mb-2">Quantity *</label>
-              <Input
-                type="number"
-                placeholder="e.g., 10"
-                value={itemQuantity}
-                onChange={(e) => setItemQuantity(e.target.value)}
-                min="1"
-                data-testid="input-item-quantity"
-              />
-            </div>
-
-            {/* Unit Price */}
-            <div>
-              <label className="text-sm font-semibold text-slate-700 block mb-2">Unit Price (Optional)</label>
-              <Input
-                type="number"
-                placeholder="Leave empty to use default"
-                value={itemPrice}
-                onChange={(e) => setItemPrice(e.target.value)}
-                step="0.01"
-                data-testid="input-item-price"
-              />
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setAddingItem(false);
-                  setItemSearch("");
-                  setSelectedItemId(null);
-                }}
-                className="flex-1"
-                data-testid="button-cancel-add-item"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleAddItem}
-                disabled={!selectedItemId || !itemQuantity || addItemMutation.isPending}
-                className="flex-1"
-                data-testid="button-confirm-add-item"
-              >
-                {addItemMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  "Add Item"
+                {/* Filtered Items List */}
+                {itemSearch.trim() && (
+                  <div className="border border-slate-200 rounded-md bg-white max-h-80 overflow-y-auto">
+                    {filteredItems.length > 0 ? (
+                      <div className="divide-y divide-slate-100">
+                        {filteredItems.map((item) => (
+                          <div
+                            key={item.id}
+                            onClick={() => handleSelectItem(item)}
+                            className="p-3 cursor-pointer hover:bg-slate-50 transition-colors"
+                            data-testid={`item-option-${item.id}`}
+                          >
+                            <p className="font-medium text-slate-900 text-sm">{item.itemName}</p>
+                            <p className="text-xs text-slate-600 mt-1">Material: {item.materialNumber}</p>
+                            <p className="text-xs text-slate-500 mt-1">Price: ${parseFloat(item.price).toFixed(2)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 text-center text-sm text-slate-500">No items found</div>
+                    )}
+                  </div>
                 )}
-              </Button>
-            </div>
+
+                {!itemSearch.trim() && (
+                  <p className="text-xs text-slate-500 text-center py-4">Start typing to search items</p>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Selected Item Details */}
+                <div className="p-4 bg-slate-50 rounded-md border border-slate-200">
+                  <p className="font-semibold text-slate-900">{selectedItem.itemName}</p>
+                  <p className="text-sm text-slate-600 mt-2">Material Number: {selectedItem.materialNumber}</p>
+                  <p className="text-sm text-slate-600 mt-1">Default Unit Price: ${parseFloat(selectedItem.price).toFixed(2)}</p>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedItem(null);
+                      setItemQuantity("");
+                      setItemPrice("");
+                    }}
+                    className="mt-3 p-0 h-auto"
+                    data-testid="button-change-item"
+                  >
+                    Change Item
+                  </Button>
+                </div>
+
+                {/* Quantity */}
+                <div>
+                  <label className="text-sm font-semibold text-slate-700 block mb-2">Quantity *</label>
+                  <Input
+                    type="number"
+                    placeholder="e.g., 10"
+                    value={itemQuantity}
+                    onChange={(e) => setItemQuantity(e.target.value)}
+                    min="1"
+                    data-testid="input-item-quantity"
+                  />
+                </div>
+
+                {/* Unit Price Override */}
+                <div>
+                  <label className="text-sm font-semibold text-slate-700 block mb-2">Unit Price (Optional - leave blank for default)</label>
+                  <Input
+                    type="number"
+                    placeholder={`Default: $${parseFloat(selectedItem.price).toFixed(2)}`}
+                    value={itemPrice}
+                    onChange={(e) => setItemPrice(e.target.value)}
+                    step="0.01"
+                    data-testid="input-item-price"
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedItem(null);
+                      setItemQuantity("");
+                      setItemPrice("");
+                    }}
+                    className="flex-1"
+                    data-testid="button-cancel-add-item"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleAddItem}
+                    disabled={!itemQuantity || addItemMutation.isPending}
+                    className="flex-1"
+                    data-testid="button-confirm-add-item"
+                  >
+                    {addItemMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      "Add Item"
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -474,10 +522,12 @@ export default function EditPurchaseOrderPage() {
           </DialogHeader>
           {editingItem && (
             <div className="space-y-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">{editingItem.item.itemName}</p>
-                <p className="text-sm text-slate-600 mt-1">Material: {editingItem.item.materialNumber}</p>
+              <div className="p-4 bg-slate-50 rounded-md border border-slate-200">
+                <p className="font-semibold text-slate-900">{editingItem.item.itemName}</p>
+                <p className="text-sm text-slate-600 mt-2">Material: {editingItem.item.materialNumber}</p>
+                <p className="text-sm text-slate-600 mt-1">Default Unit Price: ${parseFloat(editingItem.item.price).toFixed(2)}</p>
               </div>
+
               <div>
                 <label className="text-sm font-semibold text-slate-700 block mb-2">Quantity *</label>
                 <Input
@@ -488,17 +538,19 @@ export default function EditPurchaseOrderPage() {
                   data-testid="input-edit-quantity"
                 />
               </div>
+
               <div>
-                <label className="text-sm font-semibold text-slate-700 block mb-2">Unit Price (Optional)</label>
+                <label className="text-sm font-semibold text-slate-700 block mb-2">Unit Price (Optional - leave blank for default)</label>
                 <Input
                   type="number"
                   value={itemPrice}
                   onChange={(e) => setItemPrice(e.target.value)}
-                  placeholder="Leave empty to use default"
+                  placeholder={`Default: $${parseFloat(editingItem.item.price).toFixed(2)}`}
                   step="0.01"
                   data-testid="input-edit-price"
                 />
               </div>
+
               <div className="flex gap-3 pt-4">
                 <Button
                   variant="outline"
