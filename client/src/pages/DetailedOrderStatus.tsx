@@ -60,6 +60,7 @@ export default function DetailedOrderStatus() {
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<SearchSuggestion | null>(null);
 
   const searchSuggestions = useMemo(() => {
     if (!searchQuery.trim() || !purchaseOrders) return [];
@@ -100,6 +101,22 @@ export default function DetailedOrderStatus() {
 
   const filteredPurchaseOrders = useMemo(() => {
     if (!purchaseOrders) return [];
+    
+    // If a specific suggestion was selected, filter to only that item
+    if (selectedSuggestion) {
+      if (selectedSuggestion.type === 'po') {
+        return purchaseOrders.filter((po: PurchaseOrderWithItems) => po.id === selectedSuggestion.poId);
+      } else {
+        return purchaseOrders
+          .filter((po: PurchaseOrderWithItems) => po.id === selectedSuggestion.poId)
+          .map((po: PurchaseOrderWithItems) => ({
+            ...po,
+            items: po.items.filter(item => item.id === selectedSuggestion.id)
+          }));
+      }
+    }
+    
+    // If just typing (no selection), show all matching
     if (!searchQuery.trim()) return purchaseOrders;
     
     const query = searchQuery.toLowerCase();
@@ -120,15 +137,17 @@ export default function DetailedOrderStatus() {
         return null;
       })
       .filter((po): po is PurchaseOrderWithItems => po !== null);
-  }, [purchaseOrders, searchQuery]);
+  }, [purchaseOrders, searchQuery, selectedSuggestion]);
 
   const handleSuggestionClick = (suggestion: SearchSuggestion) => {
     setSearchQuery(suggestion.label);
+    setSelectedSuggestion(suggestion);
     setShowDropdown(false);
   };
 
   const clearSearch = () => {
     setSearchQuery("");
+    setSelectedSuggestion(null);
     setShowDropdown(false);
   };
 
@@ -213,6 +232,7 @@ export default function DetailedOrderStatus() {
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
+              setSelectedSuggestion(null);
               setShowDropdown(true);
             }}
             onFocus={() => setShowDropdown(true)}
