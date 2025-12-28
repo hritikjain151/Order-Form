@@ -72,6 +72,15 @@ export function PurchaseOrderForm({ onSuccess }: { onSuccess?: () => void }) {
   });
 
   const onSubmit = (data: FormData) => {
+    // Check for duplicate items
+    const itemIds = data.items.map(item => item.itemId);
+    const uniqueIds = new Set(itemIds);
+    
+    if (itemIds.length !== uniqueIds.size) {
+      alert("Duplicate items found. Please remove duplicate items from the purchase order.");
+      return;
+    }
+    
     mutation.mutate(data as any, {
       onSuccess: () => {
         form.reset();

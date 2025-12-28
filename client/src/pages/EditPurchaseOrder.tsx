@@ -86,6 +86,14 @@ export default function EditPurchaseOrderPage() {
 
   const handleAddItem = () => {
     if (!selectedItem || !itemQuantity) return;
+    
+    // Check for duplicate items
+    const isDuplicate = po?.items.some(item => item.itemId === selectedItem.id);
+    if (isDuplicate) {
+      alert("This item already exists in the purchase order. Please choose a different item.");
+      return;
+    }
+    
     addItemMutation.mutate({
       poId: poId!,
       data: {

@@ -122,6 +122,13 @@ export async function registerRoutes(
     try {
       const poId = Number(req.params.id);
       const input = insertPurchaseOrderItemSchema.parse(req.body);
+      
+      // Check for duplicate items
+      const po = await storage.getPurchaseOrder(poId);
+      if (po && po.items.some(item => item.itemId === input.itemId)) {
+        return res.status(409).json({ message: "This item already exists in the purchase order" });
+      }
+      
       const item = await storage.addItemToPurchaseOrder(poId, input);
       res.status(201).json(item);
     } catch (err) {
@@ -131,6 +138,7 @@ export async function registerRoutes(
           field: err.errors[0].path.join('.'),
         });
       } else {
+        console.error("Error adding item:", err);
         res.status(500).json({ message: "Internal server error" });
       }
     }

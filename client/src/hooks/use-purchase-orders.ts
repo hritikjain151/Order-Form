@@ -305,7 +305,13 @@ export function useAddPurchaseOrderItem() {
         body: JSON.stringify(data),
       });
 
-      if (!res.ok) throw new Error("Failed to add item");
+      if (!res.ok) {
+        if (res.status === 409) {
+          const error = await res.json();
+          throw new Error(error.message || "This item already exists in the purchase order");
+        }
+        throw new Error("Failed to add item");
+      }
       return res.json();
     },
     onSuccess: (_, { poId }) => {
