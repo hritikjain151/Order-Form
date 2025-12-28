@@ -12,7 +12,7 @@ import {
   type PurchaseOrderWithItems,
   type ProcessHistoryEntry
 } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, asc } from "drizzle-orm";
 
 export interface IStorage {
   // Items
@@ -37,7 +37,7 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // Items
   async getItems(): Promise<Item[]> {
-    return await db.select().from(items);
+    return await db.select().from(items).orderBy(asc(items.materialNumber));
   }
 
   async getItemByMaterialNumber(materialNumber: string): Promise<Item | undefined> {
@@ -103,11 +103,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPurchaseOrders(): Promise<PurchaseOrderWithItems[]> {
-    const pos = await db.select().from(purchaseOrders);
+    const pos = await db.select().from(purchaseOrders).orderBy(asc(purchaseOrders.id));
     const result: PurchaseOrderWithItems[] = [];
 
     for (const po of pos) {
-      const poItems = await db.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.poId, po.id));
+      const poItems = await db.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.poId, po.id)).orderBy(asc(purchaseOrderItems.id));
       const itemsWithDetails = await Promise.all(
         poItems.map(async (poItem) => {
           const [itemDetail] = await db.select().from(items).where(eq(items.id, poItem.itemId));
@@ -124,7 +124,7 @@ export class DatabaseStorage implements IStorage {
     const [po] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, id));
     if (!po) return undefined;
 
-    const poItems = await db.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.poId, id));
+    const poItems = await db.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.poId, id)).orderBy(asc(purchaseOrderItems.id));
     const itemsWithDetails = await Promise.all(
       poItems.map(async (poItem) => {
         const [itemDetail] = await db.select().from(items).where(eq(items.id, poItem.itemId));
