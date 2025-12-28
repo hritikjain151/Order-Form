@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { usePurchaseOrders, useAllProcessHistory } from "@/hooks/use-purchase-orders";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { 
   Accordion, 
   AccordionContent, 
@@ -30,7 +31,9 @@ import {
   Clock, 
   History, 
   Calendar,
-  RefreshCcw
+  RefreshCcw,
+  Search,
+  X
 } from "lucide-react";
 import { format } from "date-fns";
 import type { ProcessHistoryEntry, PurchaseOrderWithItems } from "@shared/schema";
@@ -41,11 +44,87 @@ interface ProcessStage {
   completed: boolean;
 }
 
+interface SearchResult {
+  type: 'po' | 'material';
+  id: number;
+  poId: number;
+  label: string;
+  sublabel: string;
+}
+
 export default function DetailedOrderStatus() {
   const { data: purchaseOrders, isLoading: posLoading } = usePurchaseOrders();
   const { data: allHistory, refetch: refetchHistory } = useAllProcessHistory();
   const [selectedPoItemId, setSelectedPoItemId] = useState<number | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<SearchResult | null>(null);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim() || !purchaseOrders) return [];
+    
+    const query = searchQuery.toLowerCase();
+    const results: SearchResult[] = [];
+    
+    purchaseOrders.forEach((po: PurchaseOrderWithItems) => {
+      if (po.poNumber.toLowerCase().includes(query)) {
+        results.push({
+          type: 'po',
+          id: po.id,
+          poId: po.id,
+          label: po.poNumber,
+          sublabel: `PO - ${po.vendorName}`
+        });
+      }
+      
+      po.items.forEach((item) => {
+        if (item.item?.materialNumber.toLowerCase().includes(query) ||
+            item.item?.itemName.toLowerCase().includes(query)) {
+          const existing = results.find(r => r.type === 'material' && r.id === item.id);
+          if (!existing) {
+            results.push({
+              type: 'material',
+              id: item.id,
+              poId: po.id,
+              label: item.item?.materialNumber || '',
+              sublabel: `${item.item?.itemName} (${po.poNumber})`
+            });
+          }
+        }
+      });
+    });
+    
+    return results.slice(0, 10);
+  }, [searchQuery, purchaseOrders]);
+
+  const filteredPurchaseOrders = useMemo(() => {
+    if (!purchaseOrders) return [];
+    if (!selectedFilter) return purchaseOrders;
+    
+    if (selectedFilter.type === 'po') {
+      return purchaseOrders.filter((po: PurchaseOrderWithItems) => po.id === selectedFilter.poId);
+    } else {
+      return purchaseOrders
+        .filter((po: PurchaseOrderWithItems) => po.id === selectedFilter.poId)
+        .map((po: PurchaseOrderWithItems) => ({
+          ...po,
+          items: po.items.filter(item => item.id === selectedFilter.id)
+        }));
+    }
+  }, [purchaseOrders, selectedFilter]);
+
+  const handleSelectResult = (result: SearchResult) => {
+    setSelectedFilter(result);
+    setSearchQuery(result.label);
+    setShowSearchResults(false);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    setSelectedFilter(null);
+    setShowSearchResults(false);
+  };
 
   const getItemHistory = (poItemId: number) => {
     if (!allHistory) return [];
@@ -98,7 +177,7 @@ export default function DetailedOrderStatus() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto h-full overflow-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2" data-testid="page-title">
             <ClipboardList className="w-6 h-6" />
@@ -119,9 +198,80 @@ export default function DetailedOrderStatus() {
         </Button>
       </div>
 
-      {purchaseOrders && purchaseOrders.length > 0 ? (
-        <Accordion type="multiple" className="space-y-4">
-          {purchaseOrders.map((po: PurchaseOrderWithItems) => (
+      <div className="relative mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search by PO number or material number..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowSearchResults(true);
+              if (!e.target.value) setSelectedFilter(null);
+            }}
+            onFocus={() => setShowSearchResults(true)}
+            className="pl-10 pr-10"
+            data-testid="input-search"
+          />
+          {(searchQuery || selectedFilter) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+              onClick={clearSearch}
+              data-testid="button-clear-search"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+        
+        {showSearchResults && searchResults.length > 0 && !selectedFilter && (
+          <div className="absolute z-50 w-full mt-1 bg-card border rounded-md shadow-lg max-h-64 overflow-auto">
+            {searchResults.map((result, idx) => (
+              <div
+                key={`${result.type}-${result.id}`}
+                className="px-4 py-3 cursor-pointer hover-elevate border-b last:border-b-0"
+                onClick={() => handleSelectResult(result)}
+                data-testid={`search-result-${idx}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-1.5 rounded ${result.type === 'po' ? 'bg-primary/10' : 'bg-blue-100 dark:bg-blue-900'}`}>
+                    {result.type === 'po' ? (
+                      <Package className="w-4 h-4 text-primary" />
+                    ) : (
+                      <ClipboardList className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{result.label}</p>
+                    <p className="text-xs text-muted-foreground">{result.sublabel}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {selectedFilter && (
+          <div className="mt-2 flex items-center gap-2">
+            <Badge variant="secondary" className="flex items-center gap-1">
+              {selectedFilter.type === 'po' ? 'PO:' : 'Material:'} {selectedFilter.label}
+              <button onClick={clearSearch} className="ml-1 hover:text-destructive">
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              Showing filtered results
+            </span>
+          </div>
+        )}
+      </div>
+
+      {filteredPurchaseOrders && filteredPurchaseOrders.length > 0 ? (
+        <Accordion type="multiple" className="space-y-4" defaultValue={selectedFilter ? [`po-${selectedFilter.poId}`] : []}>
+          {filteredPurchaseOrders.map((po: PurchaseOrderWithItems) => (
             <AccordionItem 
               key={po.id} 
               value={`po-${po.id}`}
