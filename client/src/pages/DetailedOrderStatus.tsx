@@ -45,12 +45,58 @@ interface ProcessStage {
 }
 
 
+interface SearchSuggestion {
+  type: 'po' | 'material';
+  id: number;
+  poId: number;
+  label: string;
+  sublabel: string;
+}
+
 export default function DetailedOrderStatus() {
   const { data: purchaseOrders, isLoading: posLoading } = usePurchaseOrders();
   const { data: allHistory, refetch: refetchHistory } = useAllProcessHistory();
   const [selectedPoItemId, setSelectedPoItemId] = useState<number | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const searchSuggestions = useMemo(() => {
+    if (!searchQuery.trim() || !purchaseOrders) return [];
+    
+    const query = searchQuery.toLowerCase();
+    const suggestions: SearchSuggestion[] = [];
+    
+    purchaseOrders.forEach((po: PurchaseOrderWithItems) => {
+      if (po.poNumber.toLowerCase().includes(query)) {
+        suggestions.push({
+          type: 'po',
+          id: po.id,
+          poId: po.id,
+          label: po.poNumber,
+          sublabel: `PO - ${po.vendorName}`
+        });
+      }
+      
+      po.items.forEach((item) => {
+        if (item.item?.materialNumber.toLowerCase().includes(query) ||
+            item.item?.itemName.toLowerCase().includes(query)) {
+          const existing = suggestions.find(s => s.type === 'material' && s.id === item.id);
+          if (!existing) {
+            suggestions.push({
+              type: 'material',
+              id: item.id,
+              poId: po.id,
+              label: item.item?.materialNumber || '',
+              sublabel: `${item.item?.itemName} (${po.poNumber})`
+            });
+          }
+        }
+      });
+    });
+    
+    return suggestions.slice(0, 10);
+  }, [searchQuery, purchaseOrders]);
 
   const filteredPurchaseOrders = useMemo(() => {
     if (!purchaseOrders) return [];
@@ -76,8 +122,14 @@ export default function DetailedOrderStatus() {
       .filter((po): po is PurchaseOrderWithItems => po !== null);
   }, [purchaseOrders, searchQuery]);
 
+  const handleSuggestionClick = (suggestion: SearchSuggestion) => {
+    setSearchQuery(suggestion.label);
+    setShowDropdown(false);
+  };
+
   const clearSearch = () => {
     setSearchQuery("");
+    setShowDropdown(false);
   };
 
   const getItemHistory = (poItemId: number) => {
@@ -152,14 +204,19 @@ export default function DetailedOrderStatus() {
         </Button>
       </div>
 
-      <div className="mb-6">
+      <div className="relative mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             type="text"
             placeholder="Search by PO number or material number..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowDropdown(true);
+            }}
+            onFocus={() => setShowDropdown(true)}
+            onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
             className="pl-10 pr-10"
             data-testid="input-search"
           />
@@ -175,6 +232,33 @@ export default function DetailedOrderStatus() {
             </Button>
           )}
         </div>
+        
+        {showDropdown && searchSuggestions.length > 0 && (
+          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 border rounded-md shadow-lg max-h-64 overflow-auto">
+            {searchSuggestions.map((suggestion, idx) => (
+              <div
+                key={`${suggestion.type}-${suggestion.id}`}
+                className="px-4 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 border-b last:border-b-0"
+                onClick={() => handleSuggestionClick(suggestion)}
+                data-testid={`search-suggestion-${idx}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-1.5 rounded ${suggestion.type === 'po' ? 'bg-primary/10' : 'bg-blue-100 dark:bg-blue-900'}`}>
+                    {suggestion.type === 'po' ? (
+                      <Package className="w-4 h-4 text-primary" />
+                    ) : (
+                      <ClipboardList className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{suggestion.label}</p>
+                    <p className="text-xs text-muted-foreground">{suggestion.sublabel}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         
         {searchQuery && (
           <p className="mt-2 text-sm text-muted-foreground">
