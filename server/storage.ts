@@ -87,7 +87,19 @@ export class DatabaseStorage implements IStorage {
     if (!processesJson) {
       return JSON.stringify(PROCESS_STAGES.map(stage => ({ stage, remarks: "", completed: false })));
     }
-    return processesJson;
+    
+    // Migrate existing data: remove "Delivered" stage if present
+    try {
+      const processes = JSON.parse(processesJson);
+      if (Array.isArray(processes) && processes.length === 11) {
+        // Remove the last "Delivered" stage
+        const migratedProcesses = processes.filter((p: any) => p.stage !== "Delivered");
+        return JSON.stringify(migratedProcesses);
+      }
+      return processesJson;
+    } catch {
+      return processesJson;
+    }
   }
 
   async getPurchaseOrders(): Promise<PurchaseOrderWithItems[]> {
