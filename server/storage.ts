@@ -3,14 +3,16 @@ import {
   items,
   purchaseOrders,
   purchaseOrderItems,
+  processHistory,
   type InsertItem,
   type InsertPurchaseOrder,
   type InsertPurchaseOrderItem,
   type Item,
   type PurchaseOrder,
-  type PurchaseOrderWithItems
+  type PurchaseOrderWithItems,
+  type ProcessHistoryEntry
 } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   // Items
@@ -26,6 +28,10 @@ export interface IStorage {
   createPurchaseOrder(po: InsertPurchaseOrder, items: (InsertPurchaseOrderItem & { item: Item })[]): Promise<PurchaseOrderWithItems>;
   updatePurchaseOrderItemStatus(id: number, status: string): Promise<any>;
   updatePurchaseOrderItemProcess(id: number, stageIndex: number, remarks?: string, completed?: boolean): Promise<any>;
+  
+  // Process History
+  getProcessHistory(poItemId: number): Promise<ProcessHistoryEntry[]>;
+  getAllProcessHistory(): Promise<ProcessHistoryEntry[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -159,10 +165,34 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Invalid stage index');
     }
     
+    const previousRemarks = processes[stageIndex].remarks || null;
+    const previousCompleted = processes[stageIndex].completed;
+    
+    // Determine the action type
+    let action = 'updated';
+    if (completed !== undefined && completed !== previousCompleted) {
+      action = completed ? 'completed' : 'uncompleted';
+    } else if (remarks !== undefined && remarks !== previousRemarks) {
+      action = previousRemarks ? 'remarks_updated' : 'remarks_added';
+    }
+    
     if (remarks !== undefined) processes[stageIndex].remarks = remarks;
     if (completed !== undefined) processes[stageIndex].completed = completed;
     
     const [updated] = await db.update(purchaseOrderItems).set({ processes: JSON.stringify(processes) }).where(eq(purchaseOrderItems.id, id)).returning();
+    
+    // Record history entry
+    await db.insert(processHistory).values({
+      poItemId: id,
+      stageName: processes[stageIndex].stage,
+      stageIndex,
+      action,
+      remarks: remarks || null,
+      previousRemarks,
+      completed: completed !== undefined ? (completed ? 1 : 0) : (previousCompleted ? 1 : 0),
+      changedAt: new Date(),
+    });
+    
     return updated;
   }
 
@@ -204,6 +234,20 @@ export class DatabaseStorage implements IStorage {
 
   async deletePurchaseOrderItem(itemId: number): Promise<void> {
     await db.delete(purchaseOrderItems).where(eq(purchaseOrderItems.id, itemId));
+  }
+  
+  // Process History methods
+  async getProcessHistory(poItemId: number): Promise<ProcessHistoryEntry[]> {
+    const history = await db.select().from(processHistory)
+      .where(eq(processHistory.poItemId, poItemId))
+      .orderBy(desc(processHistory.changedAt));
+    return history as ProcessHistoryEntry[];
+  }
+  
+  async getAllProcessHistory(): Promise<ProcessHistoryEntry[]> {
+    const history = await db.select().from(processHistory)
+      .orderBy(desc(processHistory.changedAt));
+    return history as ProcessHistoryEntry[];
   }
 }
 
