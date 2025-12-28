@@ -207,6 +207,26 @@ export async function registerRoutes(
     }
   });
 
+  // Process History routes
+  app.get(api.purchaseOrderItems.getHistory.path, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const history = await storage.getProcessHistory(id);
+      res.json(history);
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get(api.processHistory.list.path, async (req, res) => {
+    try {
+      const history = await storage.getAllProcessHistory();
+      res.json(history);
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   return httpServer;
 }
 

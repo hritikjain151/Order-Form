@@ -75,6 +75,23 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    getHistory: {
+      method: 'GET' as const,
+      path: '/api/purchase-order-items/:id/history',
+      responses: {
+        200: z.array(z.custom<any>()),
+        404: errorSchemas.notFound,
+      },
+    },
+  },
+  processHistory: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/process-history',
+      responses: {
+        200: z.array(z.custom<any>()),
+      },
+    },
   },
   purchaseOrders: {
     list: {
