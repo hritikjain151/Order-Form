@@ -59,6 +59,19 @@ export const purchaseOrderItems = pgTable("purchase_order_items", {
   processes: text("processes"),
 });
 
+// Process history table to track all status changes with timestamps
+export const processHistory = pgTable("process_history", {
+  id: serial("id").primaryKey(),
+  poItemId: integer("po_item_id").notNull().references(() => purchaseOrderItems.id, { onDelete: "cascade" }),
+  stageName: text("stage_name").notNull(),
+  stageIndex: integer("stage_index").notNull(),
+  action: text("action").notNull(), // 'completed', 'uncompleted', 'remarks_added', 'remarks_updated'
+  remarks: text("remarks"),
+  previousRemarks: text("previous_remarks"),
+  completed: integer("completed").notNull(), // 1 = true, 0 = false
+  changedAt: timestamp("changed_at").notNull().defaultNow(),
+});
+
 export const insertItemSchema = createInsertSchema(items).omit({ 
   id: true,
   createdAt: true
@@ -97,10 +110,23 @@ export const createPurchaseOrderWithItemsSchema = insertPurchaseOrderSchema.exte
 export type Item = typeof items.$inferSelect;
 export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
 export type PurchaseOrderItem = typeof purchaseOrderItems.$inferSelect;
+export type ProcessHistory = typeof processHistory.$inferSelect;
 export type InsertItem = z.infer<typeof insertItemSchema>;
 export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;
 export type InsertPurchaseOrderItem = z.infer<typeof insertPurchaseOrderItemSchema>;
 
 export interface PurchaseOrderWithItems extends PurchaseOrder {
   items: (PurchaseOrderItem & { item: Item })[];
+}
+
+export interface ProcessHistoryEntry {
+  id: number;
+  poItemId: number;
+  stageName: string;
+  stageIndex: number;
+  action: string;
+  remarks: string | null;
+  previousRemarks: string | null;
+  completed: number;
+  changedAt: Date;
 }
