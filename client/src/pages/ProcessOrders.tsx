@@ -96,87 +96,73 @@ export default function ProcessOrdersPage() {
                   </div>
                 </div>
 
-                {/* Items */}
-                <div className="divide-y divide-slate-200">
-                  {po.items.map((poItem) => {
-                    const processes = JSON.parse(poItem.processes || "[]");
-                    const completedCount = getCompletedCount(processes);
-                    const progressPercentage = getProgressPercentage(processes);
+                {/* Items Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50">
+                        <th className="text-left text-xs font-semibold text-slate-600 uppercase tracking-wide px-6 py-3 whitespace-nowrap">Item Name</th>
+                        <th className="text-left text-xs font-semibold text-slate-600 uppercase tracking-wide px-6 py-3 whitespace-nowrap">Material #</th>
+                        <th className="text-left text-xs font-semibold text-slate-600 uppercase tracking-wide px-6 py-3 whitespace-nowrap">Quantity</th>
+                        <th className="text-left text-xs font-semibold text-slate-600 uppercase tracking-wide px-6 py-3 whitespace-nowrap">Unit Price</th>
+                        <th className="text-left text-xs font-semibold text-slate-600 uppercase tracking-wide px-6 py-3 whitespace-nowrap">Delivery Date</th>
+                        <th className="text-left text-xs font-semibold text-slate-600 uppercase tracking-wide px-6 py-3 whitespace-nowrap">Progress</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {po.items.map((poItem) => {
+                        const processes = JSON.parse(poItem.processes || "[]");
+                        const completedCount = getCompletedCount(processes);
+                        const progressPercentage = getProgressPercentage(processes);
 
-                    return (
-                      <div key={poItem.id} className="p-6">
-                        {/* Item Header */}
-                        <div className="mb-6">
-                          <div className="flex items-baseline gap-4">
-                            <div>
-                              <p className="text-sm font-semibold text-slate-900">{poItem.item.itemName}</p>
-                              <p className="text-xs text-slate-600 mt-1">Material: {poItem.item.materialNumber}</p>
-                            </div>
-                            <div className="text-xs text-slate-600 ml-auto">
-                              <span className="font-semibold text-slate-900">{completedCount}/{processes.length}</span> stages completed
-                            </div>
-                          </div>
-                          <div className="mt-3 h-2 bg-slate-200 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-300"
-                              style={{ width: `${progressPercentage}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Process Stages */}
-                        <div className="space-y-3">
-                          {processes.map((process: any, idx: number) => (
-                            <div
-                              key={idx}
-                              className={`flex items-start gap-4 p-4 rounded-md border transition-colors ${
-                                process.completed
-                                  ? "bg-emerald-50 border-emerald-200"
-                                  : "bg-slate-50 border-slate-200 hover:border-slate-300"
-                              }`}
-                            >
-                              {/* Stage Indicator */}
-                              <div className="flex-shrink-0 mt-0.5">
-                                {process.completed ? (
-                                  <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
-                                    <Check className="w-4 h-4 text-white" />
-                                  </div>
-                                ) : (
-                                  <div className="w-6 h-6 rounded-full bg-slate-300 flex items-center justify-center text-xs font-bold text-slate-700">
-                                    {idx + 1}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Stage Content */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className={`font-semibold ${process.completed ? "text-emerald-700" : "text-slate-900"}`}>
-                                    {PROCESS_STAGES[idx]}
-                                  </p>
-                                  {process.completed && <span className="text-xs font-medium text-emerald-700">Completed</span>}
+                        return (
+                          <tr key={poItem.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-6 py-4 text-sm font-medium text-slate-900">{poItem.item.itemName}</td>
+                            <td className="px-6 py-4 text-sm text-slate-700">{poItem.item.materialNumber}</td>
+                            <td className="px-6 py-4 text-sm text-slate-700">{poItem.quantity}</td>
+                            <td className="px-6 py-4 text-sm text-slate-700">${parseFloat(poItem.unitPrice).toFixed(2)}</td>
+                            <td className="px-6 py-4 text-sm text-slate-700">{poItem.deliveryDate ? format(new Date(poItem.deliveryDate), "MMM dd, yyyy") : "N/A"}</td>
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col items-start gap-2 min-w-96">
+                                <div className="flex items-center justify-between w-full">
+                                  <span className="text-xs font-medium text-slate-600">11-Stage Process</span>
+                                  <span className="text-xs font-semibold text-slate-900">{completedCount}/11</span>
                                 </div>
-                                {process.remarks && (
-                                  <p className="text-sm text-slate-600 mt-1 break-words">{process.remarks}</p>
-                                )}
+                                <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden relative group cursor-pointer">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-300"
+                                    style={{ width: `${progressPercentage}%` }}
+                                  />
+                                  {/* Stages tooltip on hover */}
+                                  <div className="absolute left-0 top-full mt-1 w-full hidden group-hover:block bg-slate-900 text-white text-xs rounded py-2 px-3 z-10 whitespace-normal">
+                                    <div className="grid grid-cols-2 gap-1">
+                                      {processes.map((p: any, idx: number) => (
+                                        <div key={idx} className="flex items-center gap-1">
+                                          <span className={p.completed ? "text-emerald-400" : "text-slate-400"}>
+                                            {p.completed ? "✓" : "○"}
+                                          </span>
+                                          <span className="text-xs">{PROCESS_STAGES[idx]}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-xs"
+                                  onClick={() => handleOpenEdit(poItem.id, 0, "", false)}
+                                  data-testid={`button-edit-item-${poItem.id}`}
+                                >
+                                  Edit Stages
+                                </Button>
                               </div>
-
-                              {/* Edit Button */}
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="flex-shrink-0"
-                                onClick={() => handleOpenEdit(poItem.id, idx, process.remarks || "", process.completed)}
-                                data-testid={`button-edit-process-${poItem.id}-${idx}`}
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             ))}
