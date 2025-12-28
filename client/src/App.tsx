@@ -10,6 +10,7 @@ import ItemsPage from "@/pages/Items";
 import ItemDetailsPage from "@/pages/ItemDetails";
 import ProcessOrdersPage from "@/pages/ProcessOrders";
 import EditPurchaseOrderPage from "@/pages/EditPurchaseOrder";
+import DetailedOrderStatusPage from "@/pages/DetailedOrderStatus";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/items" component={ItemsPage} />
       <Route path="/item-details" component={ItemDetailsPage} />
       <Route path="/process-orders" component={ProcessOrdersPage} />
+      <Route path="/detailed-order-status" component={DetailedOrderStatusPage} />
       <Route path="/edit-po/:id" component={EditPurchaseOrderPage} />
       <Route component={NotFound} />
     </Switch>

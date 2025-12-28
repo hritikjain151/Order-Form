@@ -392,3 +392,27 @@ export function useDeletePurchaseOrderItem() {
     },
   });
 }
+
+export function useProcessHistory(poItemId: number | null) {
+  return useQuery({
+    queryKey: [api.purchaseOrderItems.getHistory.path, poItemId],
+    queryFn: async () => {
+      if (!poItemId) return [];
+      const res = await fetch(api.purchaseOrderItems.getHistory.path.replace(':id', String(poItemId)));
+      if (!res.ok) throw new Error("Failed to fetch process history");
+      return res.json();
+    },
+    enabled: !!poItemId,
+  });
+}
+
+export function useAllProcessHistory() {
+  return useQuery({
+    queryKey: [api.processHistory.list.path],
+    queryFn: async () => {
+      const res = await fetch(api.processHistory.list.path);
+      if (!res.ok) throw new Error("Failed to fetch process history");
+      return res.json();
+    },
+  });
+}
