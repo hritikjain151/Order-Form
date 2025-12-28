@@ -111,6 +111,37 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    addItem: {
+      method: 'POST' as const,
+      path: '/api/purchase-orders/:id/items',
+      input: insertPurchaseOrderItemSchema,
+      responses: {
+        201: z.custom<any>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
+    updateItem: {
+      method: 'PATCH' as const,
+      path: '/api/purchase-order-items/:itemId',
+      input: z.object({
+        quantity: z.number().optional(),
+        priceOverride: z.number().optional(),
+      }),
+      responses: {
+        200: z.custom<any>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
+    deleteItem: {
+      method: 'DELETE' as const,
+      path: '/api/purchase-order-items/:itemId',
+      responses: {
+        200: z.custom<any>(),
+        404: errorSchemas.notFound,
+      },
+    },
   },
 };
 

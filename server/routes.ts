@@ -118,6 +118,45 @@ export async function registerRoutes(
     }
   });
 
+  app.post(api.purchaseOrders.addItem.path, async (req, res) => {
+    try {
+      const poId = Number(req.params.id);
+      const input = insertPurchaseOrderItemSchema.parse(req.body);
+      const item = await storage.addItemToPurchaseOrder(poId, input);
+      res.status(201).json(item);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+
+  app.patch(api.purchaseOrders.updateItem.path, async (req, res) => {
+    try {
+      const itemId = Number(req.params.itemId);
+      const input = req.body;
+      const item = await storage.updatePurchaseOrderItem(itemId, input);
+      res.json(item);
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete(api.purchaseOrders.deleteItem.path, async (req, res) => {
+    try {
+      const itemId = Number(req.params.itemId);
+      await storage.deletePurchaseOrderItem(itemId);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.patch(api.purchaseOrderItems.updateStatus.path, async (req, res) => {
     try {
       const id = Number(req.params.id);

@@ -292,3 +292,97 @@ export function useUpdatePurchaseOrder() {
     },
   });
 }
+
+export function useAddPurchaseOrderItem() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ poId, data }: { poId: number; data: any }) => {
+      const res = await fetch(api.purchaseOrders.addItem.path.replace(':id', String(poId)), {
+        method: api.purchaseOrders.addItem.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) throw new Error("Failed to add item");
+      return res.json();
+    },
+    onSuccess: (_, { poId }) => {
+      queryClient.invalidateQueries({ queryKey: [api.purchaseOrders.get.path, poId] });
+      toast({
+        title: "Success",
+        description: "Item added successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useUpdatePurchaseOrderItem() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ itemId, data, poId }: { itemId: number; data: any; poId: number }) => {
+      const res = await fetch(api.purchaseOrders.updateItem.path.replace(':itemId', String(itemId)), {
+        method: api.purchaseOrders.updateItem.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) throw new Error("Failed to update item");
+      return res.json();
+    },
+    onSuccess: (_, { poId }) => {
+      queryClient.invalidateQueries({ queryKey: [api.purchaseOrders.get.path, poId] });
+      toast({
+        title: "Success",
+        description: "Item updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useDeletePurchaseOrderItem() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ itemId, poId }: { itemId: number; poId: number }) => {
+      const res = await fetch(api.purchaseOrders.deleteItem.path.replace(':itemId', String(itemId)), {
+        method: api.purchaseOrders.deleteItem.method,
+      });
+
+      if (!res.ok) throw new Error("Failed to delete item");
+      return res.json();
+    },
+    onSuccess: (_, { poId }) => {
+      queryClient.invalidateQueries({ queryKey: [api.purchaseOrders.get.path, poId] });
+      toast({
+        title: "Success",
+        description: "Item deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}

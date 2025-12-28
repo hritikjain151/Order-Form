@@ -179,6 +179,32 @@ export class DatabaseStorage implements IStorage {
     );
     return { ...po, items: itemsWithDetails };
   }
+
+  async addItemToPurchaseOrder(poId: number, itemData: any): Promise<any> {
+    const PROCESS_STAGES = [
+      "Feasibility", "Designing", "Cutting", "Internal Quality", "Processing",
+      "Fabrication", "Finishing", "Internal Quality", "Customer Quality", "Ready For Dispatch", "Delivered"
+    ];
+    
+    const [item] = await db.insert(purchaseOrderItems).values({
+      poId,
+      itemId: itemData.itemId,
+      quantity: itemData.quantity,
+      priceOverride: itemData.priceOverride || null,
+      processes: JSON.stringify(PROCESS_STAGES.map(stage => ({ stage, remarks: "", completed: false })))
+    }).returning();
+    
+    return item;
+  }
+
+  async updatePurchaseOrderItem(itemId: number, data: any): Promise<any> {
+    const [updated] = await db.update(purchaseOrderItems).set(data).where(eq(purchaseOrderItems.id, itemId)).returning();
+    return updated;
+  }
+
+  async deletePurchaseOrderItem(itemId: number): Promise<void> {
+    await db.delete(purchaseOrderItems).where(eq(purchaseOrderItems.id, itemId));
+  }
 }
 
 export const storage = new DatabaseStorage();
