@@ -46,8 +46,7 @@ export const PROCESS_STAGES = [
   "Finishing",
   "Internal Quality",
   "Customer Quality",
-  "Ready For Dispatch",
-  "Delivered"
+  "Ready For Dispatch"
 ] as const;
 
 export const purchaseOrderItems = pgTable("purchase_order_items", {

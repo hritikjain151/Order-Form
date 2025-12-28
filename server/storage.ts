@@ -81,7 +81,7 @@ export class DatabaseStorage implements IStorage {
   private initializeProcesses(processesJson: string | null): string {
     const PROCESS_STAGES = [
       "Feasibility", "Designing", "Cutting", "Internal Quality", "Processing",
-      "Fabrication", "Finishing", "Internal Quality", "Customer Quality", "Ready For Dispatch", "Delivered"
+      "Fabrication", "Finishing", "Internal Quality", "Customer Quality", "Ready For Dispatch"
     ];
     
     if (!processesJson) {
@@ -125,7 +125,7 @@ export class DatabaseStorage implements IStorage {
   async createPurchaseOrder(insertPo: InsertPurchaseOrder, itemsData: (InsertPurchaseOrderItem & { item: Item })[]): Promise<PurchaseOrderWithItems> {
     const PROCESS_STAGES = [
       "Feasibility", "Designing", "Cutting", "Internal Quality", "Processing",
-      "Fabrication", "Finishing", "Internal Quality", "Customer Quality", "Ready For Dispatch", "Delivered"
+      "Fabrication", "Finishing", "Internal Quality", "Customer Quality", "Ready For Dispatch"
     ];
     
     const [po] = await db.insert(purchaseOrders).values(insertPo).returning();
@@ -213,7 +213,7 @@ export class DatabaseStorage implements IStorage {
   async addItemToPurchaseOrder(poId: number, itemData: any): Promise<any> {
     const PROCESS_STAGES = [
       "Feasibility", "Designing", "Cutting", "Internal Quality", "Processing",
-      "Fabrication", "Finishing", "Internal Quality", "Customer Quality", "Ready For Dispatch", "Delivered"
+      "Fabrication", "Finishing", "Internal Quality", "Customer Quality", "Ready For Dispatch"
     ];
     
     const [item] = await db.insert(purchaseOrderItems).values({

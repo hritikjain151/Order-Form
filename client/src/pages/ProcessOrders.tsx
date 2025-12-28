@@ -15,7 +15,7 @@ interface EditingProcess {
 }
 
 export default function ProcessOrdersPage() {
-  const { data: purchaseOrders = [], isLoading } = usePurchaseOrders();
+  const { data: allPurchaseOrders = [], isLoading } = usePurchaseOrders();
   const updateProcessStageMutation = useUpdateProcessStage();
   const [editingProcess, setEditingProcess] = useState<EditingProcess | null>(null);
   const [remarks, setRemarks] = useState("");
@@ -33,6 +33,18 @@ export default function ProcessOrdersPage() {
     const count = getCompletedCount(processes);
     return (count / processes.length) * 100;
   };
+
+  const isItemCompleted = (processes: any[]) => {
+    return processes.every(p => p.completed);
+  };
+
+  // Filter out POs where all items are completed
+  const purchaseOrders = allPurchaseOrders.filter((po: any) => {
+    return po.items.some((item: any) => {
+      const processes = JSON.parse(item.processes || "[]");
+      return !isItemCompleted(processes);
+    });
+  });
 
   const handleOpenProcessDialog = (itemId: number, stageIndex: number, currentRemarks: string, isCompleted: boolean) => {
     setEditingProcess({ itemId, stageIndex, currentRemarks, isCompleted });
@@ -154,7 +166,7 @@ export default function ProcessOrdersPage() {
                                 <div className="w-full">
                                   <div className="flex items-center justify-between mb-2">
                                     <span className="text-xs font-medium text-slate-600">Process Progress</span>
-                                    <span className="text-xs font-semibold text-slate-900">{completedCount}/11</span>
+                                    <span className="text-xs font-semibold text-slate-900">{completedCount}/{PROCESS_STAGES.length}</span>
                                   </div>
                                   <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                                     <div
@@ -164,16 +176,23 @@ export default function ProcessOrdersPage() {
                                   </div>
                                 </div>
 
-                                {/* Process Button */}
-                                <Button
-                                  size="sm"
-                                  className="w-full text-xs"
-                                  onClick={() => currentStageIndex >= 0 && handleOpenProcessDialog(poItem.id, currentStageIndex, currentStage?.remarks || "", false)}
-                                  disabled={currentStageIndex < 0}
-                                  data-testid={`button-process-${poItem.id}`}
-                                >
-                                  {currentStageIndex < 0 ? "All Stages Completed" : "Update Process"}
-                                </Button>
+                                {/* Process Button - Hidden for completed items */}
+                                {!isItemCompleted(processes) && (
+                                  <Button
+                                    size="sm"
+                                    className="w-full text-xs"
+                                    onClick={() => currentStageIndex >= 0 && handleOpenProcessDialog(poItem.id, currentStageIndex, currentStage?.remarks || "", false)}
+                                    disabled={currentStageIndex < 0}
+                                    data-testid={`button-process-${poItem.id}`}
+                                  >
+                                    Update Process
+                                  </Button>
+                                )}
+                                {isItemCompleted(processes) && (
+                                  <div className="w-full text-center py-2 text-xs font-medium text-emerald-600 bg-emerald-50 rounded">
+                                    Completed
+                                  </div>
+                                )}
                               </div>
                             </td>
                           </tr>
