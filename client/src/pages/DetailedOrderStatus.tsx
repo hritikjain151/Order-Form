@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { usePurchaseOrders, useAllProcessHistory } from "@/hooks/use-purchase-orders";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
@@ -21,8 +21,7 @@ import {
   Dialog, 
   DialogContent, 
   DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+  DialogTitle 
 } from "@/components/ui/dialog";
 import { 
   ClipboardList, 
@@ -30,9 +29,7 @@ import {
   CheckCircle2, 
   Clock, 
   History, 
-  ChevronRight,
   Calendar,
-  MessageSquare,
   RefreshCcw
 } from "lucide-react";
 import { format } from "date-fns";
@@ -46,13 +43,24 @@ interface ProcessStage {
 
 export default function DetailedOrderStatus() {
   const { data: purchaseOrders, isLoading: posLoading } = usePurchaseOrders();
-  const { data: allHistory, isLoading: historyLoading, refetch: refetchHistory } = useAllProcessHistory();
+  const { data: allHistory, refetch: refetchHistory } = useAllProcessHistory();
   const [selectedPoItemId, setSelectedPoItemId] = useState<number | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
 
   const getItemHistory = (poItemId: number) => {
     if (!allHistory) return [];
     return allHistory.filter((h: ProcessHistoryEntry) => h.poItemId === poItemId);
+  };
+
+  const getStageCompletionDate = (poItemId: number, stageIndex: number) => {
+    if (!allHistory) return null;
+    const historyEntry = allHistory.find(
+      (h: ProcessHistoryEntry) => 
+        h.poItemId === poItemId && 
+        h.stageIndex === stageIndex && 
+        h.action === 'completed'
+    );
+    return historyEntry ? historyEntry.changedAt : null;
   };
 
   const getActionBadge = (action: string) => {
@@ -62,9 +70,9 @@ export default function DetailedOrderStatus() {
       case 'uncompleted':
         return <Badge variant="secondary" data-testid="badge-action-uncompleted">Uncompleted</Badge>;
       case 'remarks_added':
-        return <Badge variant="outline" className="border-blue-500 text-blue-600" data-testid="badge-action-remarks-added">Remarks Added</Badge>;
+        return <Badge variant="outline" className="border-blue-500 text-blue-600 dark:text-blue-400" data-testid="badge-action-remarks-added">Remarks Added</Badge>;
       case 'remarks_updated':
-        return <Badge variant="outline" className="border-amber-500 text-amber-600" data-testid="badge-action-remarks-updated">Remarks Updated</Badge>;
+        return <Badge variant="outline" className="border-amber-500 text-amber-600 dark:text-amber-400" data-testid="badge-action-remarks-updated">Remarks Updated</Badge>;
       default:
         return <Badge variant="outline" data-testid="badge-action-default">Updated</Badge>;
     }
@@ -143,91 +151,100 @@ export default function DetailedOrderStatus() {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <div className="space-y-4 mt-2">
-                  {po.items.map((poItem, itemIndex) => {
-                    const processes: ProcessStage[] = JSON.parse(poItem.processes || '[]');
-                    const progress = calculateProgress(processes);
-                    const itemHistory = getItemHistory(poItem.id);
-                    
-                    return (
-                      <Card key={poItem.id} className="border-l-4 border-l-primary/50" data-testid={`card-item-${poItem.id}`}>
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <CardTitle className="text-base flex items-center gap-2" data-testid={`text-item-name-${poItem.id}`}>
-                                {poItem.item?.itemName}
-                                <Badge variant="secondary" size="sm">
-                                  {poItem.item?.materialNumber}
-                                </Badge>
-                              </CardTitle>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Quantity: {poItem.quantity} | 
-                                Price: ${poItem.priceOverride || poItem.item?.price}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <div className="text-right">
-                                <p className="text-xs text-muted-foreground">Progress</p>
-                                <p className="text-lg font-bold text-primary" data-testid={`text-progress-${poItem.id}`}>
-                                  {progress}%
-                                </p>
-                              </div>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => openHistoryDialog(poItem.id)}
-                                data-testid={`button-view-history-${poItem.id}`}
-                              >
-                                <History className="w-4 h-4 mr-1" />
-                                History ({itemHistory.length})
-                              </Button>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="relative">
-                            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-slate-200"></div>
-                            <div className="space-y-3 pl-10">
-                              {processes.map((process, idx) => (
-                                <div 
-                                  key={idx} 
-                                  className={`relative flex items-start gap-3 ${process.completed ? 'opacity-100' : 'opacity-60'}`}
-                                  data-testid={`process-stage-${poItem.id}-${idx}`}
-                                >
-                                  <div className={`absolute -left-6 w-4 h-4 rounded-full border-2 flex items-center justify-center
-                                    ${process.completed 
-                                      ? 'bg-green-500 border-green-500' 
-                                      : 'bg-background border-slate-300'}`}
-                                  >
-                                    {process.completed && <CheckCircle2 className="w-3 h-3 text-white" />}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between">
-                                      <p className={`font-medium text-sm ${process.completed ? 'text-green-700' : 'text-muted-foreground'}`}>
-                                        {process.stage}
-                                      </p>
-                                      {process.completed ? (
-                                        <Badge variant="default" size="sm" className="bg-green-600">Complete</Badge>
-                                      ) : (
-                                        <Badge variant="outline" size="sm">Pending</Badge>
-                                      )}
-                                    </div>
-                                    {process.remarks && (
-                                      <div className="mt-1 flex items-start gap-1 text-xs text-muted-foreground bg-slate-50 rounded p-2">
-                                        <MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                                        <span>{process.remarks}</span>
-                                      </div>
-                                    )}
-                                  </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Material No.</TableHead>
+                      <TableHead>Item Name</TableHead>
+                      <TableHead className="text-center">Qty</TableHead>
+                      <TableHead className="text-right">Price</TableHead>
+                      <TableHead>Progress</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {po.items.map((poItem) => {
+                      const processes: ProcessStage[] = JSON.parse(poItem.processes || '[]');
+                      const progress = calculateProgress(processes);
+                      const itemHistory = getItemHistory(poItem.id);
+                      
+                      return (
+                        <TableRow key={poItem.id} data-testid={`row-item-${poItem.id}`}>
+                          <TableCell className="font-medium">
+                            {poItem.item?.materialNumber}
+                          </TableCell>
+                          <TableCell>{poItem.item?.itemName}</TableCell>
+                          <TableCell className="text-center">{poItem.quantity}</TableCell>
+                          <TableCell className="text-right">
+                            ${poItem.priceOverride || poItem.item?.price}
+                          </TableCell>
+                          <TableCell className="min-w-[300px]">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-green-500 transition-all duration-300"
+                                    style={{ width: `${progress}%` }}
+                                  />
                                 </div>
-                              ))}
+                                <span className="text-sm font-medium w-12 text-right">{progress}%</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {processes.map((process, idx) => {
+                                  const completionDate = getStageCompletionDate(poItem.id, idx);
+                                  return (
+                                    <div 
+                                      key={idx}
+                                      className={`relative group`}
+                                      data-testid={`process-indicator-${poItem.id}-${idx}`}
+                                    >
+                                      <div 
+                                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2
+                                          ${process.completed 
+                                            ? 'bg-green-500 border-green-500 text-white' 
+                                            : 'bg-background border-slate-300 dark:border-slate-600 text-muted-foreground'}`}
+                                      >
+                                        {process.completed ? (
+                                          <CheckCircle2 className="w-3 h-3" />
+                                        ) : (
+                                          <span>{idx + 1}</span>
+                                        )}
+                                      </div>
+                                      <div className="invisible group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50">
+                                        <div className="bg-slate-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                                          <p className="font-medium">{process.stage}</p>
+                                          {completionDate && (
+                                            <p className="text-green-400">
+                                              {format(new Date(completionDate), "MMM dd, HH:mm")}
+                                            </p>
+                                          )}
+                                          {!process.completed && (
+                                            <p className="text-slate-400">Pending</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => openHistoryDialog(poItem.id)}
+                              data-testid={`button-view-history-${poItem.id}`}
+                            >
+                              <History className="w-4 h-4 mr-1" />
+                              History ({itemHistory.length})
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </AccordionContent>
             </AccordionItem>
           ))}
