@@ -132,7 +132,12 @@ export default function ProcessOrdersPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
-                      {po.items.map((poItem) => {
+                      {po.items
+                        .filter((poItem) => {
+                          const processes = JSON.parse(poItem.processes || "[]");
+                          return !isItemCompleted(processes);
+                        })
+                        .map((poItem) => {
                         const processes = JSON.parse(poItem.processes || "[]");
                         const completedCount = getCompletedCount(processes);
                         const progressPercentage = getProgressPercentage(processes);
@@ -176,23 +181,15 @@ export default function ProcessOrdersPage() {
                                   </div>
                                 </div>
 
-                                {/* Process Button - Hidden for completed items */}
-                                {!isItemCompleted(processes) && (
-                                  <Button
-                                    size="sm"
-                                    className="w-full text-xs"
-                                    onClick={() => currentStageIndex >= 0 && handleOpenProcessDialog(poItem.id, currentStageIndex, currentStage?.remarks || "", false)}
-                                    disabled={currentStageIndex < 0}
-                                    data-testid={`button-process-${poItem.id}`}
-                                  >
-                                    Update Process
-                                  </Button>
-                                )}
-                                {isItemCompleted(processes) && (
-                                  <div className="w-full text-center py-2 text-xs font-medium text-emerald-600 bg-emerald-50 rounded">
-                                    Completed
-                                  </div>
-                                )}
+                                <Button
+                                  size="sm"
+                                  className="w-full text-xs"
+                                  onClick={() => currentStageIndex >= 0 && handleOpenProcessDialog(poItem.id, currentStageIndex, currentStage?.remarks || "", false)}
+                                  disabled={currentStageIndex < 0}
+                                  data-testid={`button-process-${poItem.id}`}
+                                >
+                                  Update Process
+                                </Button>
                               </div>
                             </td>
                           </tr>
