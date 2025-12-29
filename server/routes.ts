@@ -35,6 +35,7 @@ export async function registerRoutes(
         pool,
         tableName: "user_sessions",
         createTableIfMissing: true,
+        errorLog: () => {},
       }),
       secret: process.env.SESSION_SECRET || "procureflow-secret-key",
       resave: false,
