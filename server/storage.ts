@@ -4,13 +4,16 @@ import {
   purchaseOrders,
   purchaseOrderItems,
   processHistory,
+  users,
   type InsertItem,
   type InsertPurchaseOrder,
   type InsertPurchaseOrderItem,
+  type InsertUser,
   type Item,
   type PurchaseOrder,
   type PurchaseOrderWithItems,
-  type ProcessHistoryEntry
+  type ProcessHistoryEntry,
+  type User
 } from "@shared/schema";
 import { eq, desc, asc } from "drizzle-orm";
 
@@ -32,6 +35,14 @@ export interface IStorage {
   // Process History
   getProcessHistory(poItemId: number): Promise<ProcessHistoryEntry[]>;
   getAllProcessHistory(): Promise<ProcessHistoryEntry[]>;
+
+  // Users
+  getUsers(): Promise<User[]>;
+  getUserById(id: number): Promise<User | undefined>;
+  getUserByUserId(userId: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User>;
+  deleteUser(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -260,6 +271,49 @@ export class DatabaseStorage implements IStorage {
     const history = await db.select().from(processHistory)
       .orderBy(desc(processHistory.changedAt));
     return history as ProcessHistoryEntry[];
+  }
+
+  // Users
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(asc(users.userId));
+  }
+
+  async getUserById(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUserId(userId: string): Promise<User | undefined> {
+    const allUsers = await db.select().from(users);
+    return allUsers.find(u => u.userId.toLowerCase() === userId.toLowerCase());
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const existing = await this.getUserByUserId(user.userId);
+    if (existing) {
+      throw new Error(`User ID '${user.userId}' already exists`);
+    }
+    const [created] = await db.insert(users).values(user).returning();
+    return created;
+  }
+
+  async updateUser(id: number, user: Partial<InsertUser>): Promise<User> {
+    const existing = await this.getUserById(id);
+    if (!existing) {
+      throw new Error('User not found');
+    }
+    if (user.userId && user.userId.toLowerCase() !== existing.userId.toLowerCase()) {
+      const duplicate = await this.getUserByUserId(user.userId);
+      if (duplicate) {
+        throw new Error(`User ID '${user.userId}' already exists`);
+      }
+    }
+    const [updated] = await db.update(users).set(user).where(eq(users.id, id)).returning();
+    return updated;
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
   }
 }
 
