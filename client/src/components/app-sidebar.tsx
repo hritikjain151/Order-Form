@@ -18,22 +18,27 @@ const items = [
     href: "/",
   },
   {
-    title: "Purchase Orders",
-    icon: ShoppingCart,
-    href: "/purchase-orders",
+    title: "User Management",
+    icon: Users,
+    href: "/users",
   },
   {
-    title: "Manage Items",
+    title: "Add Items",
     icon: Package,
     href: "/items",
   },
   {
-    title: "Item Details",
+    title: "Items List",
     icon: FileText,
     href: "/item-details",
   },
   {
-    title: "Process Orders",
+    title: "Add Purchase Orders",
+    icon: ShoppingCart,
+    href: "/purchase-orders",
+  },
+  {
+    title: "Order Processing",
     icon: Truck,
     href: "/process-orders",
   },
@@ -41,11 +46,6 @@ const items = [
     title: "Detailed Order Status",
     icon: ClipboardList,
     href: "/detailed-order-status",
-  },
-  {
-    title: "User Management",
-    icon: Users,
-    href: "/users",
   },
 ];
 
