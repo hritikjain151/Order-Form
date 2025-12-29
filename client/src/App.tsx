@@ -16,12 +16,14 @@ import EditPurchaseOrderPage from "@/pages/EditPurchaseOrder";
 import DetailedOrderStatusPage from "@/pages/DetailedOrderStatus";
 import LoginPage from "@/pages/Login";
 import UsersPage from "@/pages/Users";
+import DashboardPage from "@/pages/Dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={DashboardPage} />
+      <Route path="/purchase-orders" component={Home} />
       <Route path="/items" component={ItemsPage} />
       <Route path="/item-details" component={ItemDetailsPage} />
       <Route path="/process-orders" component={ProcessOrdersPage} />

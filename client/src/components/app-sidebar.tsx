@@ -1,4 +1,4 @@
-import { Home, Package, FileText, Truck, ClipboardList, Users } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, FileText, Truck, ClipboardList, Users } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -13,9 +13,14 @@ import {
 
 const items = [
   {
-    title: "Purchase Orders",
-    icon: Home,
+    title: "Dashboard",
+    icon: LayoutDashboard,
     href: "/",
+  },
+  {
+    title: "Purchase Orders",
+    icon: ShoppingCart,
+    href: "/purchase-orders",
   },
   {
     title: "Manage Items",
