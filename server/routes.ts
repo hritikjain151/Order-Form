@@ -84,8 +84,11 @@ export async function registerRoutes(
 
   // Dashboard stats endpoint
   app.get("/api/dashboard/stats", async (req, res) => {
+    if (!req.session.isAuthenticated) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     try {
-      const allPOs = await storage.getPurchaseOrdersWithItems();
+      const allPOs = await storage.getPurchaseOrders();
       
       let oldestPendingDate: string | null = null;
       let pendingItemsCount = 0;
