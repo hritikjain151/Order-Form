@@ -1,18 +1,71 @@
-import type { Express } from "express";
+import type { Express, RequestHandler } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { api, createPurchaseOrderWithItemsSchema } from "@shared/routes";
 import { insertItemSchema, insertPurchaseOrderItemSchema } from "@shared/schema";
 import { z } from "zod";
-import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
+import session from "express-session";
+
+declare module "express-session" {
+  interface SessionData {
+    isAuthenticated: boolean;
+    userId: string;
+  }
+}
+
+const VALID_USER_ID = "viratadmin";
+const VALID_PASSWORD = "Viratpassword";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // Set up authentication first
-  await setupAuth(app);
-  registerAuthRoutes(app);
+  app.set("trust proxy", 1);
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET || "procureflow-secret-key",
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 24 * 60 * 60 * 1000,
+      },
+    })
+  );
+
+  app.post("/api/login", (req, res) => {
+    const { userId, password } = req.body;
+
+    if (!userId || !password) {
+      return res.status(400).json({ message: "User ID and password are required" });
+    }
+
+    if (userId.toLowerCase() === VALID_USER_ID && password === VALID_PASSWORD) {
+      req.session.isAuthenticated = true;
+      req.session.userId = userId;
+      return res.json({ success: true, message: "Login successful" });
+    }
+
+    return res.status(401).json({ message: "Invalid user ID or password" });
+  });
+
+  app.post("/api/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.json({ success: true });
+    });
+  });
+
+  app.get("/api/auth/status", (req, res) => {
+    res.json({
+      isAuthenticated: !!req.session.isAuthenticated,
+      userId: req.session.userId || null,
+    });
+  });
+
   // Items routes
   app.get(api.items.list.path, async (req, res) => {
     const allItems = await storage.getItems();

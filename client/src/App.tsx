@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -5,15 +6,15 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Loader2, LogIn, LogOut, Package } from "lucide-react";
+import { Loader2, LogOut } from "lucide-react";
 import Home from "@/pages/Home";
 import ItemsPage from "@/pages/Items";
 import ItemDetailsPage from "@/pages/ItemDetails";
 import ProcessOrdersPage from "@/pages/ProcessOrders";
 import EditPurchaseOrderPage from "@/pages/EditPurchaseOrder";
 import DetailedOrderStatusPage from "@/pages/DetailedOrderStatus";
+import LoginPage from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -30,38 +31,26 @@ function Router() {
   );
 }
 
-function LandingPage() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full text-center">
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
-          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Package className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">ProcureFlow</h1>
-          <p className="text-slate-600 mb-8">
-            Purchase Order Management System for tracking procurement workflows and process stages.
-          </p>
-          <Button
-            size="lg"
-            className="w-full gap-2"
-            onClick={() => window.location.href = "/api/login"}
-            data-testid="button-login"
-          >
-            <LogIn className="w-4 h-4" />
-            Sign In to Continue
-          </Button>
-        </div>
-        <p className="text-xs text-slate-500 mt-6">
-          Sign in with your Replit account to access the system
-        </p>
-      </div>
-    </div>
-  );
+interface AuthState {
+  isAuthenticated: boolean;
+  userId: string | null;
+  isLoading: boolean;
 }
 
-function AuthenticatedApp() {
-  const { user, logout, isLoggingOut } = useAuth();
+function AuthenticatedApp({ userId, onLogout }: { userId: string | null; onLogout: () => void }) {
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await fetch("/api/logout", { method: "POST", credentials: "include" });
+      onLogout();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   const sidebarStyle = {
     "--sidebar-width": "16rem",
@@ -76,15 +65,15 @@ function AuthenticatedApp() {
           <header className="flex items-center justify-between px-4 h-16 border-b border-slate-200 bg-white bg-opacity-80 backdrop-blur-sm">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <div className="flex items-center gap-4">
-              {user && (
+              {userId && (
                 <span className="text-sm text-slate-600">
-                  {user.firstName || user.email || "User"}
+                  {userId}
                 </span>
               )}
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => logout()}
+                onClick={handleLogout}
                 disabled={isLoggingOut}
                 className="gap-2"
                 data-testid="button-logout"
@@ -108,9 +97,35 @@ function AuthenticatedApp() {
 }
 
 function AppContent() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const [authState, setAuthState] = useState<AuthState>({
+    isAuthenticated: false,
+    userId: null,
+    isLoading: true,
+  });
 
-  if (isLoading) {
+  const checkAuth = async () => {
+    try {
+      const response = await fetch("/api/auth/status", { credentials: "include" });
+      const data = await response.json();
+      setAuthState({
+        isAuthenticated: data.isAuthenticated,
+        userId: data.userId,
+        isLoading: false,
+      });
+    } catch (error) {
+      setAuthState({
+        isAuthenticated: false,
+        userId: null,
+        isLoading: false,
+      });
+    }
+  };
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  if (authState.isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -118,11 +133,16 @@ function AppContent() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <LandingPage />;
+  if (!authState.isAuthenticated) {
+    return <LoginPage onLogin={checkAuth} />;
   }
 
-  return <AuthenticatedApp />;
+  return (
+    <AuthenticatedApp
+      userId={authState.userId}
+      onLogout={() => setAuthState({ isAuthenticated: false, userId: null, isLoading: false })}
+    />
+  );
 }
 
 function App() {
