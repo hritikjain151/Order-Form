@@ -2,7 +2,7 @@ import type { Express, RequestHandler } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { api, createPurchaseOrderWithItemsSchema } from "@shared/routes";
-import { insertItemSchema, insertPurchaseOrderItemSchema } from "@shared/schema";
+import { insertItemSchema, insertPurchaseOrderItemSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -14,9 +14,6 @@ declare module "express-session" {
     userId: string;
   }
 }
-
-const VALID_USER_ID = "viratadmin";
-const VALID_PASSWORD = "Viratpassword";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -49,20 +46,24 @@ export async function registerRoutes(
     })
   );
 
-  app.post("/api/login", (req, res) => {
+  app.post("/api/login", async (req, res) => {
     const { userId, password } = req.body;
 
     if (!userId || !password) {
       return res.status(400).json({ message: "User ID and password are required" });
     }
 
-    if (userId.toLowerCase() === VALID_USER_ID && password === VALID_PASSWORD) {
-      req.session.isAuthenticated = true;
-      req.session.userId = userId;
-      return res.json({ success: true, message: "Login successful" });
+    try {
+      const user = await storage.getUserByUserId(userId);
+      if (user && user.isActive === 1 && user.password === password) {
+        req.session.isAuthenticated = true;
+        req.session.userId = user.userId;
+        return res.json({ success: true, message: "Login successful" });
+      }
+      return res.status(401).json({ message: "Invalid user ID or password" });
+    } catch (err) {
+      return res.status(500).json({ message: "Login failed" });
     }
-
-    return res.status(401).json({ message: "Invalid user ID or password" });
   });
 
   app.post("/api/logout", (req, res) => {
@@ -79,6 +80,66 @@ export async function registerRoutes(
       isAuthenticated: !!req.session.isAuthenticated,
       userId: req.session.userId || null,
     });
+  });
+
+  // Users routes
+  app.get("/api/users", async (req, res) => {
+    const allUsers = await storage.getUsers();
+    const usersWithoutPassword = allUsers.map(({ password, ...user }) => user);
+    res.json(usersWithoutPassword);
+  });
+
+  app.post("/api/users", async (req, res) => {
+    try {
+      const input = insertUserSchema.parse(req.body);
+      const user = await storage.createUser(input);
+      const { password, ...userWithoutPassword } = user;
+      res.status(201).json(userWithoutPassword);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      } else if (err instanceof Error && err.message.includes('already exists')) {
+        res.status(409).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+
+  app.patch("/api/users/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const input = insertUserSchema.partial().parse(req.body);
+      const user = await storage.updateUser(id, input);
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      } else if (err instanceof Error && err.message.includes('not found')) {
+        res.status(404).json({ message: err.message });
+      } else if (err instanceof Error && err.message.includes('already exists')) {
+        res.status(409).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      await storage.deleteUser(id);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to delete user" });
+    }
   });
 
   // Items routes
