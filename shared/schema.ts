@@ -60,6 +60,16 @@ export const purchaseOrderItems = pgTable("purchase_order_items", {
   processes: text("processes"),
 });
 
+// Users table for authentication
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull().unique(),
+  password: text("password").notNull(),
+  name: text("name").notNull(),
+  isActive: integer("is_active").notNull().default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Process history table to track all status changes with timestamps
 export const processHistory = pgTable("process_history", {
   id: serial("id").primaryKey(),
@@ -104,6 +114,16 @@ export const insertPurchaseOrderItemSchema = z.object({
   priceOverride: z.coerce.number().optional(),
 });
 
+export const insertUserSchema = createInsertSchema(users).omit({ 
+  id: true,
+  createdAt: true
+}).extend({
+  userId: z.string().min(1, "User ID is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().min(1, "Name is required"),
+  isActive: z.coerce.number().optional().default(1),
+});
+
 export const createPurchaseOrderWithItemsSchema = insertPurchaseOrderSchema.extend({
   items: z.array(insertPurchaseOrderItemSchema).min(1, "At least one item is required"),
 });
@@ -112,9 +132,11 @@ export type Item = typeof items.$inferSelect;
 export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
 export type PurchaseOrderItem = typeof purchaseOrderItems.$inferSelect;
 export type ProcessHistory = typeof processHistory.$inferSelect;
+export type User = typeof users.$inferSelect;
 export type InsertItem = z.infer<typeof insertItemSchema>;
 export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;
 export type InsertPurchaseOrderItem = z.infer<typeof insertPurchaseOrderItemSchema>;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 
 export interface PurchaseOrderWithItems extends PurchaseOrder {
   items: (PurchaseOrderItem & { item: Item })[];
