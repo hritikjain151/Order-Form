@@ -1,4 +1,4 @@
-import { Home, Package, FileText, Truck, ClipboardList } from "lucide-react";
+import { Home, Package, FileText, Truck, ClipboardList, Users } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -36,6 +36,11 @@ const items = [
     title: "Detailed Order Status",
     icon: ClipboardList,
     href: "/detailed-order-status",
+  },
+  {
+    title: "User Management",
+    icon: Users,
+    href: "/users",
   },
 ];
 
