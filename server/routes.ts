@@ -5,6 +5,8 @@ import { api, createPurchaseOrderWithItemsSchema } from "@shared/routes";
 import { insertItemSchema, insertPurchaseOrderItemSchema } from "@shared/schema";
 import { z } from "zod";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import { Pool } from "pg";
 
 declare module "express-session" {
   interface SessionData {
@@ -21,14 +23,26 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   app.set("trust proxy", 1);
+
+  const PgStore = connectPgSimple(session);
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+  });
+
   app.use(
     session({
+      store: new PgStore({
+        pool,
+        tableName: "user_sessions",
+        createTableIfMissing: true,
+      }),
       secret: process.env.SESSION_SECRET || "procureflow-secret-key",
       resave: false,
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         maxAge: 24 * 60 * 60 * 1000,
       },
     })
