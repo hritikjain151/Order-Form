@@ -53,12 +53,12 @@ export default function ItemDetailsPage() {
     setEditingItem(item);
     form.reset({
       materialNumber: item.materialNumber,
-      vendorName: item.vendorName,
+      vendorName: item.vendorName as typeof VENDOR_OPTIONS[number],
       drawingNumber: item.drawingNumber,
       revisionNumber: item.revisionNumber,
       itemName: item.itemName,
       description: item.description,
-      specialRemarks: item.specialRemarks,
+      specialRemarks: item.specialRemarks || "",
       price: Number(item.price),
       weight: item.weight ? Number(item.weight) : undefined,
     });
@@ -173,197 +173,217 @@ export default function ItemDetailsPage() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editingItem} onOpenChange={handleCloseDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Item Details</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">Edit Item Details</DialogTitle>
+            <p className="text-sm text-muted-foreground">Update the item information below</p>
           </DialogHeader>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="materialNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm text-slate-700 font-medium">
-                      Material Number
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="MAT-001"
-                        className="rounded-lg h-9 text-sm border-slate-200"
-                        {...field}
-                        data-testid="input-edit-material-number"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Basic Information Section */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wide">Basic Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="materialNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-slate-700 font-medium">
+                          Material Number
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="MAT-001"
+                            className="rounded-lg h-9 text-sm border-slate-200"
+                            {...field}
+                            data-testid="input-edit-material-number"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="itemName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm text-slate-700 font-medium">Item Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Item name"
-                        className="rounded-lg h-9 text-sm border-slate-200"
-                        {...field}
-                        data-testid="input-edit-item-name"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="itemName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-slate-700 font-medium">Item Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Item name"
+                            className="rounded-lg h-9 text-sm border-slate-200"
+                            {...field}
+                            data-testid="input-edit-item-name"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-              <FormField
-                control={form.control}
-                name="vendorName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm text-slate-700 font-medium">Vendor Name</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="rounded-lg h-9 text-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {VENDOR_OPTIONS.map((vendor) => (
-                          <SelectItem key={vendor} value={vendor} className="text-sm">
-                            {vendor}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="vendorName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm text-slate-700 font-medium">Vendor Name</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="rounded-lg h-9 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {VENDOR_OPTIONS.map((vendor) => (
+                            <SelectItem key={vendor} value={vendor} className="text-sm">
+                              {vendor}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-              <FormField
-                control={form.control}
-                name="drawingNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm text-slate-700 font-medium">Drawing Number</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="DWG-001"
-                        className="rounded-lg h-9 text-sm border-slate-200"
-                        {...field}
-                        data-testid="input-edit-drawing-number"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+              {/* Technical Details Section */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wide">Technical Details</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="drawingNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-slate-700 font-medium">Drawing Number</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="DWG-001"
+                            className="rounded-lg h-9 text-sm border-slate-200"
+                            {...field}
+                            data-testid="input-edit-drawing-number"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="revisionNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm text-slate-700 font-medium">Revision Number</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="1.0"
-                        className="rounded-lg h-9 text-sm border-slate-200"
-                        {...field}
-                        data-testid="input-edit-revision-number"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="revisionNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-slate-700 font-medium">Revision Number</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="1.0"
+                            className="rounded-lg h-9 text-sm border-slate-200"
+                            {...field}
+                            data-testid="input-edit-revision-number"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm text-slate-700 font-medium">Price</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="0.00"
-                        className="rounded-lg h-9 text-sm border-slate-200"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        data-testid="input-edit-price"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-slate-700 font-medium">Price ($)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="0.00"
+                            className="rounded-lg h-9 text-sm border-slate-200"
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            data-testid="input-edit-price"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="weight"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm text-slate-700 font-medium">Weight (optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="0.00"
-                        className="rounded-lg h-9 text-sm border-slate-200"
-                        {...field}
-                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                        data-testid="input-edit-weight"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="weight"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-slate-700 font-medium">Weight (optional)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="0.00"
+                            className="rounded-lg h-9 text-sm border-slate-200"
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                            data-testid="input-edit-weight"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
 
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm text-slate-700 font-medium">Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Item description"
-                        className="rounded-lg text-sm border-slate-200"
-                        {...field}
-                        data-testid="textarea-edit-description"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+              {/* Additional Information Section */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wide">Additional Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-slate-700 font-medium">Description</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Item description"
+                            className="rounded-lg text-sm border-slate-200 min-h-[80px]"
+                            {...field}
+                            data-testid="textarea-edit-description"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="specialRemarks"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm text-slate-700 font-medium">Special Remarks</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Special remarks (optional)"
-                        className="rounded-lg text-sm border-slate-200"
-                        {...field}
-                        data-testid="textarea-edit-remarks"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="specialRemarks"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-slate-700 font-medium">Special Remarks</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Special remarks (optional)"
+                            className="rounded-lg text-sm border-slate-200 min-h-[80px]"
+                            {...field}
+                            value={field.value || ""}
+                            data-testid="textarea-edit-remarks"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
 
-              <div className="flex gap-2 pt-4">
+              <div className="flex gap-3 pt-4 border-t">
                 <Button
                   type="button"
                   variant="outline"
