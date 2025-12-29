@@ -82,6 +82,63 @@ export async function registerRoutes(
     });
   });
 
+  // Dashboard stats endpoint
+  app.get("/api/dashboard/stats", async (req, res) => {
+    try {
+      const allPOs = await storage.getPurchaseOrdersWithItems();
+      
+      let oldestPendingDate: string | null = null;
+      let pendingItemsCount = 0;
+      const monthlyDispatchedWeight: Record<string, number> = {};
+
+      for (const po of allPOs) {
+        let poHasPendingItems = false;
+        
+        for (const poItem of po.items) {
+          let processes: Array<{ stage: string; completed: boolean }> = [];
+          try {
+            processes = JSON.parse(poItem.processes || "[]");
+          } catch {
+            processes = [];
+          }
+          const lastStage = processes[processes.length - 1];
+          const isCompleted = lastStage?.completed === true;
+          
+          if (!isCompleted) {
+            pendingItemsCount++;
+            poHasPendingItems = true;
+          } else {
+            // Item is dispatched - add weight to monthly totals
+            const dispatchDate = new Date(po.deliveryDate || po.orderDate);
+            const monthKey = `${dispatchDate.getFullYear()}-${String(dispatchDate.getMonth() + 1).padStart(2, '0')}`;
+            const itemWeight = parseFloat(poItem.item?.weight || "0") * poItem.quantity;
+            monthlyDispatchedWeight[monthKey] = (monthlyDispatchedWeight[monthKey] || 0) + itemWeight;
+          }
+        }
+        
+        if (poHasPendingItems) {
+          const poDate = new Date(po.orderDate).toISOString();
+          if (!oldestPendingDate || poDate < oldestPendingDate) {
+            oldestPendingDate = poDate;
+          }
+        }
+      }
+
+      // Convert monthly data to sorted array
+      const monthlyData = Object.entries(monthlyDispatchedWeight)
+        .map(([month, weight]) => ({ month, weight: Math.round(weight * 100) / 100 }))
+        .sort((a, b) => a.month.localeCompare(b.month));
+
+      res.json({
+        oldestPendingDate,
+        pendingItemsCount,
+        monthlyDispatchedWeight: monthlyData,
+      });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  });
+
   // Users routes
   app.get("/api/users", async (req, res) => {
     const allUsers = await storage.getUsers();
