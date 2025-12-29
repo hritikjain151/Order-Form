@@ -2,6 +2,8 @@ import { pgTable, text, serial, integer, timestamp, decimal, unique } from "driz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export * from "./models/auth";
+
 export const VENDOR_OPTIONS = [
   "RUBBER METSO",
   "SCREEN DEVELOPMENT METSO",

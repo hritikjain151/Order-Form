@@ -4,11 +4,15 @@ import { storage } from "./storage";
 import { api, createPurchaseOrderWithItemsSchema } from "@shared/routes";
 import { insertItemSchema, insertPurchaseOrderItemSchema } from "@shared/schema";
 import { z } from "zod";
+import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Set up authentication first
+  await setupAuth(app);
+  registerAuthRoutes(app);
   // Items routes
   app.get(api.items.list.path, async (req, res) => {
     const allItems = await storage.getItems();
