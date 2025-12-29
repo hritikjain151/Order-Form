@@ -5,17 +5,20 @@ import {
   purchaseOrderItems,
   processHistory,
   users,
+  userLogs,
   type InsertItem,
   type InsertPurchaseOrder,
   type InsertPurchaseOrderItem,
   type InsertUser,
+  type InsertUserLog,
   type Item,
   type PurchaseOrder,
   type PurchaseOrderWithItems,
   type ProcessHistoryEntry,
-  type User
+  type User,
+  type UserLog
 } from "@shared/schema";
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, and, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Items
@@ -43,6 +46,11 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User>;
   deleteUser(id: number): Promise<void>;
+
+  // User Logs
+  createUserLog(log: InsertUserLog): Promise<UserLog>;
+  getUserLogs(userId: number, startDate?: Date, endDate?: Date): Promise<UserLog[]>;
+  getAllUserLogs(): Promise<UserLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -314,6 +322,31 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: number): Promise<void> {
     await db.delete(users).where(eq(users.id, id));
+  }
+
+  // User Logs
+  async createUserLog(log: InsertUserLog): Promise<UserLog> {
+    const [created] = await db.insert(userLogs).values(log).returning();
+    return created;
+  }
+
+  async getUserLogs(userId: number, startDate?: Date, endDate?: Date): Promise<UserLog[]> {
+    let conditions = [eq(userLogs.userId, userId)];
+    
+    if (startDate) {
+      conditions.push(gte(userLogs.createdAt, startDate));
+    }
+    if (endDate) {
+      conditions.push(lte(userLogs.createdAt, endDate));
+    }
+    
+    return await db.select().from(userLogs)
+      .where(and(...conditions))
+      .orderBy(desc(userLogs.createdAt));
+  }
+
+  async getAllUserLogs(): Promise<UserLog[]> {
+    return await db.select().from(userLogs).orderBy(desc(userLogs.createdAt));
   }
 }
 

@@ -60,6 +60,18 @@ export const purchaseOrderItems = pgTable("purchase_order_items", {
   processes: text("processes"),
 });
 
+// Available pages for access control
+export const PAGE_OPTIONS = [
+  "dashboard",
+  "user-management",
+  "add-items",
+  "items-list",
+  "add-purchase-orders",
+  "order-processing",
+  "detailed-order-status",
+  "user-log-details"
+] as const;
+
 // Users table for authentication
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -67,6 +79,17 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   name: text("name").notNull(),
   isActive: integer("is_active").notNull().default(1),
+  allowedPages: text("allowed_pages").array(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// User activity logs table
+export const userLogs = pgTable("user_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  details: text("details"),
+  ipAddress: text("ip_address"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -122,6 +145,17 @@ export const insertUserSchema = createInsertSchema(users).omit({
   password: z.string().min(6, "Password must be at least 6 characters"),
   name: z.string().min(1, "Name is required"),
   isActive: z.coerce.number().optional().default(1),
+  allowedPages: z.array(z.string()).optional().default([]),
+});
+
+export const insertUserLogSchema = createInsertSchema(userLogs).omit({ 
+  id: true,
+  createdAt: true
+}).extend({
+  userId: z.number().min(1, "User ID is required"),
+  action: z.string().min(1, "Action is required"),
+  details: z.string().optional(),
+  ipAddress: z.string().optional(),
 });
 
 export const createPurchaseOrderWithItemsSchema = insertPurchaseOrderSchema.extend({
@@ -133,10 +167,12 @@ export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
 export type PurchaseOrderItem = typeof purchaseOrderItems.$inferSelect;
 export type ProcessHistory = typeof processHistory.$inferSelect;
 export type User = typeof users.$inferSelect;
+export type UserLog = typeof userLogs.$inferSelect;
 export type InsertItem = z.infer<typeof insertItemSchema>;
 export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;
 export type InsertPurchaseOrderItem = z.infer<typeof insertPurchaseOrderItemSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertUserLog = z.infer<typeof insertUserLogSchema>;
 
 export interface PurchaseOrderWithItems extends PurchaseOrder {
   items: (PurchaseOrderItem & { item: Item })[];

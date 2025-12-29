@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -24,12 +25,25 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Users, Loader2 } from "lucide-react";
+import { PAGE_OPTIONS } from "@shared/schema";
+
+const PAGE_LABELS: Record<string, string> = {
+  "dashboard": "Dashboard",
+  "user-management": "User Management",
+  "add-items": "Add Items",
+  "items-list": "Items List",
+  "add-purchase-orders": "Add Purchase Orders",
+  "order-processing": "Order Processing",
+  "detailed-order-status": "Detailed Order Status",
+  "user-log-details": "User Log Details",
+};
 
 interface User {
   id: number;
   userId: string;
   name: string;
   isActive: number;
+  allowedPages: string[] | null;
   createdAt: string;
 }
 
@@ -38,6 +52,7 @@ interface UserFormData {
   password: string;
   name: string;
   isActive: number;
+  allowedPages: string[];
 }
 
 function UserForm({
@@ -56,6 +71,7 @@ function UserForm({
     password: "",
     name: user?.name || "",
     isActive: user?.isActive ?? 1,
+    allowedPages: user?.allowedPages || [],
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -65,6 +81,35 @@ function UserForm({
       delete dataToSend.password;
     }
     onSave(dataToSend);
+  };
+
+  const togglePage = (page: string) => {
+    const currentPages = formData.allowedPages || [];
+    if (currentPages.includes(page)) {
+      setFormData({
+        ...formData,
+        allowedPages: currentPages.filter((p) => p !== page),
+      });
+    } else {
+      setFormData({
+        ...formData,
+        allowedPages: [...currentPages, page],
+      });
+    }
+  };
+
+  const selectAllPages = () => {
+    setFormData({
+      ...formData,
+      allowedPages: [...PAGE_OPTIONS],
+    });
+  };
+
+  const deselectAllPages = () => {
+    setFormData({
+      ...formData,
+      allowedPages: [],
+    });
   };
 
   return (
@@ -117,6 +162,51 @@ function UserForm({
         />
         <Label htmlFor="isActive">Active (can login)</Label>
       </div>
+      
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label>Page Access</Label>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={selectAllPages}
+              data-testid="button-select-all-pages"
+            >
+              Select All
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={deselectAllPages}
+              data-testid="button-deselect-all-pages"
+            >
+              Deselect All
+            </Button>
+          </div>
+        </div>
+        <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
+          {PAGE_OPTIONS.map((page) => (
+            <div key={page} className="flex items-center space-x-2">
+              <Checkbox
+                id={`page-${page}`}
+                checked={(formData.allowedPages || []).includes(page)}
+                onCheckedChange={() => togglePage(page)}
+                data-testid={`checkbox-page-${page}`}
+              />
+              <Label htmlFor={`page-${page}`} className="text-sm font-normal cursor-pointer">
+                {PAGE_LABELS[page] || page}
+              </Label>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Select which pages this user can access
+        </p>
+      </div>
+
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel} data-testid="button-cancel">
           Cancel
@@ -224,7 +314,7 @@ export default function UsersPage() {
                 Add User
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New User</DialogTitle>
               </DialogHeader>
@@ -257,6 +347,7 @@ export default function UsersPage() {
                     <TableHead>User ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Pages</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -269,6 +360,11 @@ export default function UsersPage() {
                         <Badge variant={user.isActive === 1 ? "default" : "secondary"}>
                           {user.isActive === 1 ? "Active" : "Inactive"}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">
+                          {user.allowedPages?.length || 0} pages
+                        </span>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -300,7 +396,7 @@ export default function UsersPage() {
         </Card>
 
         <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit User</DialogTitle>
             </DialogHeader>

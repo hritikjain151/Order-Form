@@ -17,6 +17,7 @@ import DetailedOrderStatusPage from "@/pages/DetailedOrderStatus";
 import LoginPage from "@/pages/Login";
 import UsersPage from "@/pages/Users";
 import DashboardPage from "@/pages/Dashboard";
+import UserLogDetailsPage from "@/pages/UserLogDetails";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/process-orders" component={ProcessOrdersPage} />
       <Route path="/detailed-order-status" component={DetailedOrderStatusPage} />
       <Route path="/users" component={UsersPage} />
+      <Route path="/user-log-details" component={UserLogDetailsPage} />
       <Route path="/edit-po/:id" component={EditPurchaseOrderPage} />
       <Route component={NotFound} />
     </Switch>

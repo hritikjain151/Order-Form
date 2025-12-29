@@ -58,6 +58,16 @@ export async function registerRoutes(
       if (user && user.isActive === 1 && user.password === password) {
         req.session.isAuthenticated = true;
         req.session.userId = user.userId;
+        
+        // Log the login activity
+        const ipAddress = req.ip || req.socket.remoteAddress || "unknown";
+        await storage.createUserLog({
+          userId: user.id,
+          action: "login",
+          details: "User logged in successfully",
+          ipAddress,
+        });
+        
         return res.json({ success: true, message: "Login successful" });
       }
       return res.status(401).json({ message: "Invalid user ID or password" });
@@ -199,6 +209,66 @@ export async function registerRoutes(
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  // User logs routes
+  app.get("/api/user-logs", async (req, res) => {
+    if (!req.session.isAuthenticated) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    try {
+      const { userId, startDate, endDate } = req.query;
+      
+      if (userId) {
+        const logs = await storage.getUserLogs(
+          Number(userId),
+          startDate ? new Date(startDate as string) : undefined,
+          endDate ? new Date(endDate as string) : undefined
+        );
+        return res.json(logs);
+      }
+      
+      const logs = await storage.getAllUserLogs();
+      res.json(logs);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch user logs" });
+    }
+  });
+
+  app.post("/api/user-logs", async (req, res) => {
+    if (!req.session.isAuthenticated) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    try {
+      const { userId, action, details } = req.body;
+      const ipAddress = req.ip || req.socket.remoteAddress || "unknown";
+      
+      const log = await storage.createUserLog({
+        userId: Number(userId),
+        action,
+        details,
+        ipAddress,
+      });
+      res.status(201).json(log);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to create user log" });
+    }
+  });
+
+  // Get current user's permissions
+  app.get("/api/auth/permissions", async (req, res) => {
+    if (!req.session.isAuthenticated || !req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    try {
+      const user = await storage.getUserByUserId(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json({ allowedPages: user.allowedPages || [] });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch permissions" });
     }
   });
 
