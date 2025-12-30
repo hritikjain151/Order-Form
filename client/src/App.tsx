@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -109,10 +109,13 @@ function AppContent() {
     isLoading: true,
   });
 
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const response = await fetch("/api/auth/status", { credentials: "include" });
       const data = await response.json();
+      if (data.isAuthenticated) {
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/permissions"] });
+      }
       setAuthState({
         isAuthenticated: data.isAuthenticated,
         userId: data.userId,
@@ -125,7 +128,7 @@ function AppContent() {
         isLoading: false,
       });
     }
-  };
+  }, []);
 
   useEffect(() => {
     checkAuth();
